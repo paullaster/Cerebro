@@ -1,0 +1,27 @@
+{
+  "name": "cerebro",
+  "version": "0.0.1",
+  "description": "cereals e-commerce APIs ",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node --env-file=./.env.local --watch ./src/server.js --trace-warnings server.js",
+    "test": "test",
+    "lint": "eslint."
+  },
+  "keywords": [
+    "Nodejs",
+    "E-commerce"
+  ],
+  "author": "Paullaster Okoth",
+  "license": "BSD-2-Clause",
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.11.5",
+    "pg-hstore": "^2.3.4",
+    "sequelize": "^6.37.3"
+  }
+}
