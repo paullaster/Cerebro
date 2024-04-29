@@ -4,3 +4,5 @@ node_modules
 #environment
 .env.*
 
+#package-lock
+package-lock.json
