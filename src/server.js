@@ -7,6 +7,7 @@ import customer from './module/customer/index.js';
 import farmer from './module/farmer/index.js';
 import retailer from './module/retailer/index.js';
 import agent from './module/agent/index.js';
+import routes from './routes.js';
 
 
 const app = new express();
@@ -16,10 +17,11 @@ app.use(ApiResponder);
 
 
 app.use('/admin', admin);
-app.use('/customer', customer);
+app.use(customer);
 app.use('/farmer', farmer);
 app.use('/retailer', retailer);
 app.use('/agent', agent);
+app.use('/', routes);
 
 // APP SETTINGS
 app.set('port', appconfig.port);
@@ -29,9 +31,6 @@ app.set('key', appconfig.key);
 app.set('env', appconfig.environment);
 app.set('timezone', appconfig.timezone);
 
-app.get('/', (req, res) => {
-  res.ApiResponder.success('Hello World!');
-});
 
 
 

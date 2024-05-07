@@ -1,11 +1,10 @@
 import express from 'express';
+import customerRoutes from './routes.js';
 
 
 const customer = new express();
 
 
-customer.get('/', function(req, res) {
-    res.ApiResponder.success('Hello customer!');
-});
+customer.use('/customer', customerRoutes);
 
 export default customer;
