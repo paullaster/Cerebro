@@ -1,0 +1,56 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["multiSchema", "postgresqlExtensions"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  schemas  = ["public", "partitions"]
+  extensions = ["uuid-ossp", "pg_partman"]
+}
+
+// Enable UUID v7 generation
+model UuidExtension {
+  id Int @id @default(autoincrement())
+  
+  @@map("uuid_extension")
+  @@schema("public")
+}
+
+// User table (not partitioned)
+model User {
+  id                    String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  email                 String   @unique @db.VarChar(255)
+  phone_number          String   @unique @db.VarChar(20)
+  national_id           String?  @unique @db.VarChar(50)
+  password_hash         String   @db.VarChar(255)
+  role                  UserRole @default(FARMER)
+  is_email_verified     Boolean  @default(false)
+  is_phone_verified     Boolean  @default(false)
+  verification_status   VerificationStatus @default(PENDING)
+  profile_photo_url     String?  @db.VarChar(500)
+  created_at            DateTime @default(now())
+  updated_at            DateTime @updatedAt
+  
+  // Indexes
+  @@index([email])
+  @@index([phone_number])
+  @@index([national_id])
+  @@index([role])
+  @@index([verification_status])
+  @@index([created_at])
+  
+  // Relations
+  farmer               Farmer?
+  agent                Agent?
+  user_preferences     UserPreference?
+  collections_as_agent Collection[] @relation("AgentCollections")
+  collections_as_farmer Collection[] @relation("FarmerCollections")
+  payouts              PayoutTransaction[]
+  loans                Loan[]
+  audit_logs           AuditLog[]
+}
+
+// Partitioned tables will be created via migrations
+// We'll use Prisma's raw SQL for partitioning setup

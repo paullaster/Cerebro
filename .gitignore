@@ -3,6 +3,12 @@ node_modules
 
 #environment
 .env.*
+!.env.example
 
 #package-lock
 package-lock.json
+
+
+
+#Customs
+*BACKEND_SERVICE_PRD.md
