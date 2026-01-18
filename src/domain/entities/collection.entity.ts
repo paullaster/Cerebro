@@ -1,6 +1,6 @@
-import { Entity } from './base.entity';
-import { UUIDv7 } from '../value-objects/uuid-v7.value-object';
-import { Money } from '../value-objects/money.value-object';
+import { Entity } from './base.entity.ts';
+import { UUIDv7 } from '../value-objects/uuid-v7.value-object.ts';
+import { Money } from '../value-objects/money.value-object.ts';
 
 export enum CollectionGrade {
     A = 'A',

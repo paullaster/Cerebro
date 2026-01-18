@@ -58,3 +58,9 @@ export class InvalidStateException extends DomainException {
         });
     }
 }
+
+export class ConflictException extends DomainException {
+    constructor(message: string) {
+        super(message, 'CONFLICT');
+    }
+}

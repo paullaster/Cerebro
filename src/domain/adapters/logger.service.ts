@@ -34,6 +34,14 @@ export interface ILogger {
 
     // Performance logging
     time<T>(context: string, operation: string, fn: () => Promise<T>): Promise<T>;
+    
+    // Explicit performance logging for middleware
+    performance(
+        context: string,
+        duration: number,
+        threshold: number,
+        meta?: Record<string, any>
+    ): void;
 
     // Audit logging
     audit(
@@ -45,11 +53,12 @@ export interface ILogger {
     ): void;
 
     // HTTP request logging
-    http(
+    httpRequest(
         method: string,
         url: string,
         status: number,
         duration: number,
+        userId?: string,
         meta?: Record<string, any>,
     ): void;
 

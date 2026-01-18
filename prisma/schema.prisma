@@ -4,53 +4,315 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-  schemas  = ["public", "partitions"]
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  schemas    = ["public", "partitions", "audit"]
   extensions = ["uuid-ossp", "pg_partman"]
 }
 
-// Enable UUID v7 generation
-model UuidExtension {
-  id Int @id @default(autoincrement())
-  
-  @@map("uuid_extension")
-  @@schema("public")
+// Enums
+enum UserRole {
+  ADMIN
+  FARMER
+  AGENT_COLLECTION
+  AGENT_STORE
+  SUPER_ADMIN
 }
 
-// User table (not partitioned)
+enum VerificationStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum CollectionStatus {
+  PENDING
+  VERIFIED
+  DISPUTED
+  PAID
+  CANCELLED
+  WASTED
+}
+
+enum CollectionGrade {
+  A
+  B
+  C
+}
+
+enum CommissionType {
+  FLAT_PER_KG
+  PERCENTAGE_OF_VALUE
+}
+
+enum PayoutStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum WastageReason {
+  SPOILAGE
+  THEFT
+  QUALITY_REJECTION
+}
+
+// 12.1 Core Identity Tables
+
 model User {
-  id                    String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
-  email                 String   @unique @db.VarChar(255)
-  phone_number          String   @unique @db.VarChar(20)
-  national_id           String?  @unique @db.VarChar(50)
-  password_hash         String   @db.VarChar(255)
-  role                  UserRole @default(FARMER)
-  is_email_verified     Boolean  @default(false)
-  is_phone_verified     Boolean  @default(false)
-  verification_status   VerificationStatus @default(PENDING)
-  profile_photo_url     String?  @db.VarChar(500)
-  created_at            DateTime @default(now())
-  updated_at            DateTime @updatedAt
-  
-  // Indexes
+  id                  String             @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  email               String             @unique @db.VarChar(255)
+  phone_number        String             @unique @db.VarChar(20)
+  national_id         String?            @unique @db.VarChar(50)
+  password_hash       String             @db.VarChar(255)
+  role                UserRole           @default(FARMER)
+  is_email_verified   Boolean            @default(false)
+  is_phone_verified   Boolean            @default(false)
+  verification_status VerificationStatus @default(PENDING)
+  profile_photo_url   String?            @db.VarChar(500)
+  created_at          DateTime           @default(now()) @db.Timestamptz
+  updated_at          DateTime           @updatedAt @db.Timestamptz
+
+  // Relations
+  farmer               Farmer?
+  agent                Agent?
+  user_preferences     UserPreference?
+  collections_as_agent Collection[]        @relation("AgentCollections")
+  collections_as_farmer Collection[]       @relation("FarmerCollections")
+  payouts              PayoutTransaction[]
+  loans                LoanRecord[]
+  audit_logs           AuditLog[]
+  wastage_records      WastageRecord[]
+
   @@index([email])
   @@index([phone_number])
   @@index([national_id])
   @@index([role])
   @@index([verification_status])
   @@index([created_at])
-  
-  // Relations
-  farmer               Farmer?
-  agent                Agent?
-  user_preferences     UserPreference?
-  collections_as_agent Collection[] @relation("AgentCollections")
-  collections_as_farmer Collection[] @relation("FarmerCollections")
-  payouts              PayoutTransaction[]
-  loans                Loan[]
-  audit_logs           AuditLog[]
+  @@map("users")
 }
 
-// Partitioned tables will be created via migrations
-// We'll use Prisma's raw SQL for partitioning setup
+model UserPreference {
+  user_id      String  @id @db.Uuid
+  prefer_sms   Boolean @default(true)
+  prefer_email Boolean @default(true)
+  prefer_push  Boolean @default(true)
+
+  user User @relation(fields: [user_id], references: [id])
+
+  @@map("user_preferences")
+}
+
+model Farmer {
+  user_id                  String  @id @db.Uuid
+  farm_name                String  @db.VarChar(255)
+  location_place_id        String? @db.VarChar(255)
+  location_lat             Float?
+  location_lng             Float?
+  crop_specialties         String[]
+  preferred_payment_method String? @db.VarChar(50)
+
+  user User @relation(fields: [user_id], references: [id])
+
+  @@map("farmers")
+}
+
+model Agent {
+  user_id                  String   @id @db.Uuid
+  store_name               String   @db.VarChar(255)
+  operating_region_polygon Json? // GeoJSON
+  commission_schema_id     String?  @db.Uuid
+
+  user              User            @relation(fields: [user_id], references: [id])
+  commission_schema CommissionRule? @relation(fields: [commission_schema_id], references: [id])
+
+  @@map("agents")
+}
+
+model OtpVerification {
+  id         String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  identifier String   @db.VarChar(255)
+  code_hash  String   @db.VarChar(255)
+  type       String   @db.VarChar(20) // PHONE or EMAIL
+  expires_at DateTime @db.Timestamptz
+
+  @@map("otp_verifications")
+}
+
+// 12.2 Operations & Collection Tables
+
+model ProduceType {
+  id                   String        @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  name                 String        @unique @db.VarChar(100)
+  description          String?
+  image_url            String?
+  default_price_per_kg Decimal       @db.Decimal(10, 2)
+  market_rates         MarketRate[]
+  collections          Collection[]
+  wastage_records      WastageRecord[]
+
+  @@map("produce_types")
+}
+
+model MarketRate {
+  id                String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  produce_type_id   String   @db.Uuid
+  date              DateTime @db.Date
+  base_rate_per_kg  Decimal  @db.Decimal(10, 2)
+  grade_multipliers Json // { "A": 1.0, "B": 0.85, "C": 0.70 }
+
+  produce_type ProduceType @relation(fields: [produce_type_id], references: [id])
+
+  @@unique([produce_type_id, date])
+  @@map("market_rates")
+}
+
+// Partitioned Tables (Managed manually in SQL, but defined here for types)
+// Note: Foreign keys in partitioned tables might need to be handled carefully in Prisma
+model Collection {
+  id                       String          @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  store_agent_id           String          @db.Uuid
+  farmer_id                String          @db.Uuid
+  produce_type_id          String          @db.Uuid
+  weight_kg                Decimal         @db.Decimal(10, 2)
+  quality_grade            CollectionGrade
+  applied_rate             Decimal         @db.Decimal(12, 4)
+  calculated_payout_amount Decimal         @db.Decimal(14, 4)
+  status                   CollectionStatus @default(PENDING)
+  notes                    String?
+  collected_at             DateTime        @db.Timestamptz
+  verified_at              DateTime?       @db.Timestamptz
+  created_at               DateTime        @default(now()) @db.Timestamptz
+  updated_at               DateTime        @default(now()) @updatedAt @db.Timestamptz
+  partition_date           DateTime        @default(dbgenerated("CURRENT_DATE")) @db.Date
+
+  // Relations
+  agent        User        @relation("AgentCollections", fields: [store_agent_id], references: [id])
+  farmer       User        @relation("FarmerCollections", fields: [farmer_id], references: [id])
+  produce_type ProduceType @relation(fields: [produce_type_id], references: [id])
+  invoice      Invoice?
+  wastage      WastageRecord?
+
+  @@id([id, partition_date])
+  @@map("collections")
+}
+
+model WastageRecord {
+  id              String        @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  collection_id   String?       @unique @db.Uuid // One-to-one with collection if applicable
+  agent_id        String        @db.Uuid
+  produce_type_id String        @db.Uuid
+  weight_kg       Decimal       @db.Decimal(10, 2)
+  reason          WastageReason
+  declared_at     DateTime      @default(now()) @db.Timestamptz
+  created_at      DateTime      @default(now()) @db.Timestamptz
+  updated_at      DateTime      @default(now()) @updatedAt @db.Timestamptz
+  partition_date  DateTime      @default(dbgenerated("CURRENT_DATE")) @db.Date
+
+  // Relations
+  // collection   Collection? @relation(fields: [collection_id, partition_date], references: [id, partition_date]) 
+  // NOTE: Relation to partitioned table requires the full compound key in Prisma. 
+  // Since partition_date might differ or be same, this is tricky. 
+  // For strict separation, we might drop the relation here in Prisma and handle it in code/repo.
+  
+  agent        User        @relation(fields: [agent_id], references: [id])
+  produce_type ProduceType @relation(fields: [produce_type_id], references: [id])
+
+  @@id([id, partition_date])
+  @@map("wastage_records")
+}
+
+model Invoice {
+  id             String   @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  collection_id  String   @unique @db.Uuid
+  amount         Decimal  @db.Decimal(14, 4)
+  status         String   @default("PENDING") // PENDING, PAID, CANCELLED
+  qr_code_url    String?
+  created_at     DateTime @default(now()) @db.Timestamptz
+  updated_at     DateTime @default(now()) @updatedAt @db.Timestamptz
+  partition_date DateTime @default(dbgenerated("CURRENT_DATE")) @db.Date
+
+  // Relations
+  // collection Collection @relation(...) - Difficult due to partitioning keys. 
+  // Keeping it loosely coupled in Prisma schema, handled in App.
+
+  @@id([id, partition_date])
+  @@map("invoices")
+}
+
+// 12.3 Financial Tables
+
+model CommissionRule {
+  id     String         @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  name   String         @db.VarChar(100)
+  type   CommissionType
+  value  Decimal        @db.Decimal(10, 2)
+  agents Agent[]
+
+  @@map("commission_rules")
+}
+
+model PaymentRequest {
+  id           String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  agent_id     String   @db.Uuid
+  total_amount Decimal  @db.Decimal(14, 4)
+  status       String   @default("PENDING")
+  created_at   DateTime @default(now()) @db.Timestamptz
+
+  @@map("payment_requests")
+}
+
+model PayoutTransaction {
+  id                    String       @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  recipient_user_id     String       @db.Uuid
+  gross_amount          Decimal      @db.Decimal(14, 4)
+  loan_deduction_amount Decimal      @db.Decimal(14, 4) @default(0)
+  net_amount            Decimal      @db.Decimal(14, 4)
+  provider              String       @db.VarChar(50) // MPESA, STRIPE
+  provider_ref_id       String?      @db.VarChar(100)
+  status                PayoutStatus @default(PENDING)
+  created_at            DateTime     @default(now()) @db.Timestamptz
+
+  recipient User @relation(fields: [recipient_user_id], references: [id])
+
+  @@map("payout_transactions")
+}
+
+// 12.4 E-commerce & Loans
+
+model LoanRecord {
+  id                 String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  farmer_id          String   @db.Uuid
+  product_order_id   String?  @db.Uuid
+  principal_amount   Decimal  @db.Decimal(14, 4)
+  balance_remaining  Decimal  @db.Decimal(14, 4)
+  status             String   @default("ACTIVE") // ACTIVE, PAID, DEFAULTED
+  created_at         DateTime @default(now()) @db.Timestamptz
+
+  farmer User @relation(fields: [farmer_id], references: [id])
+
+  @@map("loan_records")
+}
+
+// 12.5 Audit & Logging
+// Partitioned
+model AuditLog {
+  id              String   @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  actor_user_id   String?  @db.Uuid
+  action          String   @db.VarChar(100)
+  target_resource String   @db.VarChar(100)
+  target_id       String   @db.VarChar(100)
+  old_value       Json?
+  new_value       Json?
+  ip_address      String?  @db.Inet
+  user_agent      String?
+  metadata        Json?
+  created_at      DateTime @default(now()) @db.Timestamptz
+  
+  actor User? @relation(fields: [actor_user_id], references: [id])
+
+  @@id([id, created_at]) // Partition key is created_at
+  @@map("audit_logs")
+}

@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { LokiTransport } from 'winston-loki';
 import winston from 'winston';
-import { ILogger, LogLevel } from '../../domain/adapters/logger.service';
-import { ConfigService } from '../../config/config.service';
+import { ILogger, LogLevel } from '../../domain/adapters/logger.service.ts';
+import { ConfigService } from '../../config/config.service.ts';
 
 @Injectable()
 export class LokiLogger implements ILogger {

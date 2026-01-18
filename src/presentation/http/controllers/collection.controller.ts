@@ -40,7 +40,7 @@ export class CollectionController {
     ) { }
 
     @Post()
-    @Roles(UserRole.AGENT)
+    @Roles(UserRole.AGENT_COLLECTION)
     @ApiOperation({ summary: 'Create a new collection' })
     @ApiResponse({ status: 201, description: 'Collection created successfully' })
     @ApiResponse({ status: 400, description: 'Invalid input data' })
@@ -57,7 +57,7 @@ export class CollectionController {
     }
 
     @Put(':id/verify')
-    @Roles(UserRole.AGENT, UserRole.ADMIN)
+    @Roles(UserRole.AGENT_COLLECTION, UserRole.ADMIN)
     @ApiOperation({ summary: 'Verify a collection' })
     @ApiParam({ name: 'id', description: 'Collection UUID' })
     @ApiResponse({ status: 200, description: 'Collection verified successfully' })
@@ -79,7 +79,7 @@ export class CollectionController {
     }
 
     @Get()
-    @Roles(UserRole.ADMIN, UserRole.AGENT, UserRole.FARMER)
+    @Roles(UserRole.ADMIN, UserRole.AGENT_COLLECTION, UserRole.AGENT_STORE, UserRole.FARMER)
     @ApiOperation({ summary: 'Get collections with filters' })
     @ApiResponse({ status: 200, description: 'Collections retrieved' })
     @ApiResponseEnvelope()

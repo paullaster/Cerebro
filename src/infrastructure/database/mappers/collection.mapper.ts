@@ -1,6 +1,6 @@
-import { Collection, CollectionStatus, CollectionGrade } from '../../../domain/entities/collection.entity';
-import { UUIDv7 } from '../../../domain/value-objects/uuid-v7.value-object';
-import { Money } from '../../../domain/value-objects/money.value-object';
+import { Collection, CollectionStatus, CollectionGrade } from '../../../domain/entities/collection.entity.ts';
+import { UUIDv7 } from '../../../domain/value-objects/uuid-v7.value-object.ts';
+import { Money } from '../../../domain/value-objects/money.value-object.ts';
 
 export class CollectionMapper {
     static toDomain(raw: any): Collection {

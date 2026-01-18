@@ -1,17 +1,17 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { BaseUseCase } from '../../core/base.use-case';
-import { ILogger } from '../../../domain/adapters/logger.service';
-import { ICollectionRepository } from '../../../domain/repositories/collection.repository';
-import { IUserRepository } from '../../../domain/repositories/user.repository';
-import { Collection, CollectionStatus } from '../../../domain/entities/collection.entity';
-import { UUIDv7 } from '../../../domain/value-objects/uuid-v7.value-object';
-import { IRealTimeService } from '../../../domain/adapters/real-time.service';
-import { IInvoiceService } from '../../services/invoice.service';
+import { BaseUseCase } from '../../core/base.use-case.ts';
+import { ILogger } from '../../../domain/adapters/logger.service.ts';
+import { ICollectionRepository } from '../../../domain/repositories/collection.repository.ts';
+import { IUserRepository } from '../../../domain/repositories/user.repository.ts';
+import { Collection, CollectionStatus } from '../../../domain/entities/collection.entity.ts';
+import { UUIDv7 } from '../../../domain/value-objects/uuid-v7.value-object.ts';
+import { IRealTimeService } from '../../../domain/adapters/real-time.service.ts';
+import { IInvoiceService } from '../../services/invoice.service.ts';
 import {
     EntityNotFoundException,
     InvalidStateException,
     BusinessRuleException,
-} from '../../../domain/exceptions/domain.exception';
+} from '../../../domain/exceptions/domain.exception.ts';
 
 export interface VerifyCollectionInput {
     collectionId: string;

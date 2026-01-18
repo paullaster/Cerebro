@@ -1,10 +1,12 @@
 import cluster from 'node:cluster';
 import { availableParallelism } from 'node:os';
 import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
-import { ConfigService } from './config/config.service';
-import { Logger } from '@nestjs/common';
-import { setupGracefulShutdown } from './core/graceful-shutdown';
+import { ValidationPipe, Logger } from '@nestjs/common';
+import { AppModule } from './app.module.ts';
+import { ConfigService } from './config/config.service.ts';
+import { setupGracefulShutdown } from './core/graceful-shutdown.ts';
+import { HttpExceptionFilter } from './presentation/http/filters/http-exception.filter.ts';
+import { TransformInterceptor } from './presentation/http/interceptors/transform.interceptor.ts';
 
 async function bootstrap() {
     const logger = new Logger('Bootstrap');
@@ -92,7 +94,7 @@ async function bootstrap() {
     }));
 
     // Global exception filter
-    app.useGlobalFilters(new HttpExceptionFilter());
+    app.useGlobalFilters(new HttpExceptionFilter(app.get('ILogger')));
     app.useGlobalInterceptors(new TransformInterceptor());
 
     // Setup graceful shutdown

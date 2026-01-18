@@ -1,8 +1,8 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
-import { ConfigService } from '../../config/config.service';
-import { ILogger } from '../../domain/adapters/logger.service';
-import { MetricsService } from '../logging/metrics.service';
+import { ConfigService } from '../../config/config.service.ts';
+import { ILogger } from '../../domain/adapters/logger.service.ts';
+import { MetricsService } from '../logging/metrics.service.ts';
 
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {

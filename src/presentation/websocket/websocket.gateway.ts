@@ -6,40 +6,39 @@ import {
     MessageBody,
     OnGatewayConnection,
     OnGatewayDisconnect,
+    OnGatewayInit,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { Logger, UseGuards } from '@nestjs/common';
+import { Logger, UseGuards, Inject } from '@nestjs/common';
 import { Redis } from 'ioredis';
 import { createAdapter } from '@socket.io/redis-adapter';
-import { WsAuthGuard } from '../middleware/guards/ws-auth.guard';
-import { ConfigService } from '../../config/config.service';
+import { WsAuthGuard } from '../middleware/guards/ws-auth.guard.ts';
+import { ConfigService } from '../../config/config.service.ts';
+import { IJwtService } from '../../domain/adapters/jwt.service.ts';
 
 @WebSocketGateway({
     cors: {
-        origin: (origin, callback) => {
-            const configService = new ConfigService();
-            if (configService.frontendUrls.includes(origin) || !origin) {
-                callback(null, true);
-            } else {
-                callback(new Error('Not allowed by CORS'));
-            }
-        },
+        origin: '*', // Handled by App options usually, but specific for WS
         credentials: true,
     },
-    namespace: '/',
     transports: ['websocket', 'polling'],
 })
-export class WebSocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit {
     @WebSocketServer()
     server: Server;
 
-    private readonly logger = new Logger(WebSocketGateway.name);
+    private readonly logger = new Logger(AppGateway.name);
     private readonly redisAdapter: any;
 
-    constructor(private readonly configService: ConfigService) {
+    constructor(
+        private readonly configService: ConfigService,
+        @Inject('IJwtService') private readonly jwtService: IJwtService,
+    ) {
         // Setup Redis adapter for cross-worker communication
-        if (configService.isProduction) {
-            const pubClient = new Redis(configService.redisUrl);
+        if (configService.isProduction || configService.clusterEnabled) {
+            const pubClient = new Redis(configService.redisUrl, {
+                password: configService.redisPassword,
+            });
             const subClient = pubClient.duplicate();
             this.redisAdapter = createAdapter(pubClient, subClient);
         }
@@ -49,7 +48,6 @@ export class WebSocketGateway implements OnGatewayConnection, OnGatewayDisconnec
         if (this.redisAdapter) {
             server.adapter(this.redisAdapter);
         }
-
         this.logger.log('WebSocket Gateway initialized');
     }
 
@@ -59,25 +57,26 @@ export class WebSocketGateway implements OnGatewayConnection, OnGatewayDisconnec
                 client.handshake.headers.authorization?.split(' ')[1];
 
             if (!token) {
+                // Allow unauthenticated connection? PRD says "Reject unauthorized connections immediately" in 4.3
+                // But typically handshake happens before connection fully established in socket.io middleware.
+                // handleConnection is post-handshake.
                 client.disconnect();
                 return;
             }
 
-            // Verify JWT token
-            // Implementation would use JWT service
-            // const payload = await this.jwtService.verify(token);
-            // client.data.userId = payload.sub;
-            // client.data.role = payload.role;
+            const payload = this.jwtService.verify(token);
+            client.data.userId = payload.sub;
+            client.data.role = payload.role;
 
-            this.logger.log(`Client connected: ${client.id}`);
+            this.logger.log(`Client connected: ${client.id} (User: ${payload.sub})`);
 
             // Join user-specific room
-            client.join(`user:${client.data.userId}`);
+            await client.join(`user:${payload.sub}`);
 
             // Join role-specific room
-            client.join(`role:${client.data.role}`);
+            await client.join(`role:${payload.role}`);
         } catch (error) {
-            this.logger.error(`Connection error: ${error.message}`);
+            this.logger.error(`Connection error: ${error instanceof Error ? error.message : String(error)}`);
             client.disconnect();
         }
     }
@@ -87,30 +86,7 @@ export class WebSocketGateway implements OnGatewayConnection, OnGatewayDisconnec
     }
 
     @UseGuards(WsAuthGuard)
-    @SubscribeMessage('collection:verify')
-    async handleCollectionVerification(
-        @ConnectedSocket() client: Socket,
-        @MessageBody() data: { collectionId: string; notes?: string },
-    ) {
-        const userId = client.data.userId;
-
-        // Emit to all admins
-        this.server.to('role:ADMIN').emit('collection:verified', {
-            collectionId: data.collectionId,
-            verifiedBy: userId,
-            timestamp: new Date().toISOString(),
-        });
-
-        // Emit to specific farmer
-        // This would require fetching the farmer ID from the collection
-        // this.server.to(`user:${farmerId}`).emit('collection:status-updated', {
-        //   collectionId: data.collectionId,
-        //   status: 'VERIFIED',
-        // });
-    }
-
     @SubscribeMessage('location:update')
-    @UseGuards(WsAuthGuard)
     async handleLocationUpdate(
         @ConnectedSocket() client: Socket,
         @MessageBody() data: { lat: number; lng: number; accuracy?: number },

@@ -1,14 +1,14 @@
 import { Module, CacheModule } from '@nestjs/common';
-import { ConfigModule } from './config/config.module';
-import { LoggerModule } from './infrastructure/logging/logger.module';
-import { DatabaseModule } from './infrastructure/database/database.module';
-import { RedisModule } from './infrastructure/cache/redis.module';
-import { AuthModule } from './infrastructure/security/auth.module';
-import { CollectionModule } from './presentation/http/modules/collection.module';
-import { FinancialModule } from './presentation/http/modules/financial.module';
-import { AnalyticsModule } from './presentation/http/modules/analytics.module';
-import { WebSocketModule } from './presentation/websocket/websocket.module';
-import { WorkerModule } from './presentation/workers/worker.module';
+import { ConfigModule } from './config/config.module.ts';
+import { LoggerModule } from './infrastructure/logging/logger.module.ts';
+import { DatabaseModule } from './infrastructure/database/database.module.ts';
+import { RedisModule } from './infrastructure/cache/redis.module.ts';
+import { AuthModule } from './infrastructure/security/auth.module.ts';
+import { CollectionModule } from './presentation/http/modules/collection.module.ts';
+import { FinancialModule } from './presentation/http/modules/financial.module.ts';
+import { AnalyticsModule } from './presentation/http/modules/analytics.module.ts';
+import { WebSocketModule } from './presentation/websocket/websocket.module.ts';
+import { WorkerModule } from './presentation/workers/worker.module.ts';
 import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
@@ -17,19 +17,19 @@ import { ScheduleModule } from '@nestjs/schedule';
         ConfigModule,
         LoggerModule.forRoot(),
         DatabaseModule,
-        RedisModule,
+        // RedisModule,
 
         // Feature modules
         AuthModule,
-        CollectionModule,
-        FinancialModule,
-        AnalyticsModule,
+        // CollectionModule,
+        // FinancialModule,
+        // AnalyticsModule,
 
         // Real-time modules
         WebSocketModule,
 
         // Background workers
-        WorkerModule,
+        // WorkerModule,
 
         // Scheduled tasks
         ScheduleModule.forRoot(),

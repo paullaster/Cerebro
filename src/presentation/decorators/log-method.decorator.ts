@@ -1,5 +1,5 @@
 import { Inject } from '@nestjs/common';
-import { ILogger } from '../../domain/adapters/logger.service';
+import { ILogger } from '../../domain/adapters/logger.service.ts';
 
 export function LogMethod() {
     const injectLogger = Inject('ILogger');

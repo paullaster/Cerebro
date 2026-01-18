@@ -1,6 +1,6 @@
-import { Entity } from './base.entity';
-import { UUIDv7 } from '../value-objects/uuid-v7.value-object';
-import { Money } from '../value-objects/money.value-object';
+import { Entity } from './base.entity.ts';
+import { UUIDv7 } from '../value-objects/uuid-v7.value-object.ts';
+import { Money } from '../value-objects/money.value-object.ts';
 
 export enum PaymentMethod {
     MPESA = 'MPESA',
@@ -120,5 +120,34 @@ export class Farmer extends Entity<UUIDv7> {
 
     private markAsUpdated(): void {
         this.updatedAt = new Date();
+    }
+
+    static reconstitute(props: {
+        id: UUIDv7;
+        userId: UUIDv7;
+        farmName: string;
+        locationPlaceId: string;
+        locationLat: number;
+        locationLng: number;
+        cropSpecialties: string[];
+        preferredPaymentMethod: PaymentMethod;
+        totalCollectedAmount: Money;
+        createdAt: Date;
+        updatedAt: Date;
+    }): Farmer {
+        const farmer = new Farmer(
+            props.id,
+            props.userId,
+            props.farmName,
+            props.locationPlaceId,
+            props.locationLat,
+            props.locationLng,
+            props.cropSpecialties,
+            props.preferredPaymentMethod,
+        );
+        farmer.totalCollectedAmount = props.totalCollectedAmount;
+        farmer.createdAt = props.createdAt;
+        farmer.updatedAt = props.updatedAt;
+        return farmer;
     }
 }

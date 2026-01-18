@@ -1,102 +1,130 @@
 import { Injectable } from '@nestjs/common';
-import { ILogger } from '../../domain/adapters/logger.service';
+import { ILogger, LogLevel, LogEntry } from '../../domain/adapters/logger.service';
 
 @Injectable()
 export class ConsoleLogger implements ILogger {
+    private currentLevel: LogLevel = LogLevel.INFO;
+
     private readonly colors = {
-        debug: '\x1b[34m', // Blue
-        info: '\x1b[32m', // Green
-        warn: '\x1b[33m', // Yellow
-        error: '\x1b[31m', // Red
-        fatal: '\x1b[35m', // Magenta
+        [LogLevel.DEBUG]: '\x1b[34m', // Blue
+        [LogLevel.INFO]: '\x1b[32m', // Green
+        [LogLevel.WARN]: '\x1b[33m', // Yellow
+        [LogLevel.ERROR]: '\x1b[31m', // Red
+        [LogLevel.FATAL]: '\x1b[35m', // Magenta
         reset: '\x1b[0m',
     };
 
+    setLevel(level: LogLevel): void {
+        this.currentLevel = level;
+    }
+
     debug(context: string, message: string, meta?: Record<string, any>): void {
-        this.log('debug', context, message, meta);
+        this.logEntry({ level: LogLevel.DEBUG, context, message, meta, timestamp: new Date() });
     }
 
     info(context: string, message: string, meta?: Record<string, any>): void {
-        this.log('info', context, message, meta);
+        this.logEntry({ level: LogLevel.INFO, context, message, meta, timestamp: new Date() });
     }
 
     warn(context: string, message: string, meta?: Record<string, any>): void {
-        this.log('warn', context, message, meta);
+        this.logEntry({ level: LogLevel.WARN, context, message, meta, timestamp: new Date() });
     }
 
     error(context: string, message: string, error?: Error, meta?: Record<string, any>): void {
-        this.log('error', context, message, { ...meta, error });
+        this.logEntry({
+            level: LogLevel.ERROR,
+            context,
+            message,
+            meta,
+            error: error ? {
+                name: error.name,
+                message: error.message,
+                stack: error.stack,
+            } : undefined,
+            timestamp: new Date()
+        });
     }
 
     fatal(context: string, message: string, error?: Error, meta?: Record<string, any>): void {
-        this.log('fatal', context, message, { ...meta, error });
+        this.logEntry({
+            level: LogLevel.FATAL,
+            context,
+            message,
+            meta,
+            error: error ? {
+                name: error.name,
+                message: error.message,
+                stack: error.stack,
+            } : undefined,
+            timestamp: new Date()
+        });
     }
 
-    private log(
-        level: 'debug' | 'info' | 'warn' | 'error' | 'fatal',
-        context: string,
-        message: string,
-        meta?: Record<string, any>,
-    ): void {
-        const timestamp = new Date().toISOString();
-        const color = this.colors[level];
-        const reset = this.colors.reset;
+    log(entry: LogEntry): void {
+        this.logEntry(entry);
+    }
 
-        let logMessage = `${color}[${timestamp}] [${level.toUpperCase()}] [${context}] ${message}${reset}`;
+    async time<T>(context: string, operation: string, fn: () => Promise<T>): Promise<T> {
+        const start = Date.now();
+        try {
+            const result = await fn();
+            const duration = Date.now() - start;
+            this.info(context, `Performance: ${operation}`, { duration });
+            return result;
+        } catch (error) {
+            const duration = Date.now() - start;
+            this.error(context, `Performance: ${operation} failed`, error instanceof Error ? error : new Error(String(error)), { duration });
+            throw error;
+        }
+    }
 
-        if (meta && Object.keys(meta).length > 0) {
-            logMessage += `\n${JSON.stringify(meta, null, 2)}`;
+    audit(actor: string, action: string, resource: string, resourceId: string, changes?: Record<string, any>): void {
+        this.info('Audit', `${actor} ${action} ${resource}/${resourceId}`, { changes });
+    }
+
+    httpRequest(method: string, url: string, status: number, duration: number, userId?: string, meta?: Record<string, any>): void {
+        const level = status >= 500 ? LogLevel.ERROR : status >= 400 ? LogLevel.WARN : LogLevel.INFO;
+        this.logEntry({
+            level,
+            context: 'HTTP',
+            message: `${method} ${url} ${status} ${duration}ms`,
+            meta: { ...meta, userId },
+            timestamp: new Date()
+        });
+    }
+
+    performance(context: string, duration: number, threshold: number, meta?: Record<string, any>): void {
+        const level = duration > threshold ? LogLevel.WARN : LogLevel.DEBUG;
+        this.logEntry({
+            level,
+            context: `PERF:${context}`,
+            message: `Duration: ${duration}ms (Threshold: ${threshold}ms)`,
+            meta,
+            timestamp: new Date()
+        });
+    }
+
+    async flush(): Promise<void> {
+        // Console logger is synchronous, nothing to flush
+    }
+
+    private logEntry(entry: LogEntry): void {
+        if (entry.level < this.currentLevel) return;
+
+        const color = this.colors[entry.level] || this.colors.reset;
+        const levelName = LogLevel[entry.level];
+        const timestamp = entry.timestamp.toISOString();
+
+        let output = `${color}[${timestamp}] [${levelName}] [${entry.context}] ${entry.message}${this.colors.reset}`;
+
+        if (entry.meta && Object.keys(entry.meta).length > 0) {
+            output += `\nMeta: ${JSON.stringify(entry.meta)}`;
         }
 
-        console.log(logMessage);
-    }
+        if (entry.error) {
+            output += `\nError: ${entry.error.name}: ${entry.error.message}\n${entry.error.stack || ''}`;
+        }
 
-    transaction(
-        transactionId: string,
-        action: string,
-        status: 'started' | 'completed' | 'failed',
-        meta?: Record<string, any>,
-    ): void {
-        console.log(`[Transaction] ${action} ${status} - ID: ${transactionId}`, meta);
-    }
-
-    audit(
-        actorId: string,
-        action: string,
-        resourceType: string,
-        resourceId: string,
-        changes?: Record<string, any>,
-    ): void {
-        console.log(`[Audit] ${actorId} ${action} ${resourceType}/${resourceId}`, changes);
-    }
-
-    httpRequest(
-        method: string,
-        url: string,
-        statusCode: number,
-        duration: number,
-        userId?: string,
-        meta?: Record<string, any>,
-    ): void {
-        const statusColor = statusCode >= 500 ? this.colors.error :
-            statusCode >= 400 ? this.colors.warn : this.colors.info;
-
-        console.log(
-            `${statusColor}[HTTP] ${method} ${url} ${statusCode} ${duration}ms${this.colors.reset}`,
-            { userId, ...meta }
-        );
-    }
-
-    performance(
-        operation: string,
-        duration: number,
-        threshold: number,
-        meta?: Record<string, any>,
-    ): void {
-        const color = duration > threshold ? this.colors.warn : this.colors.debug;
-        console.log(
-            `${color}[Performance] ${operation} ${duration}ms (threshold: ${threshold}ms)${this.colors.reset}`,
-            meta
-        );
+        console.log(output);
     }
 }

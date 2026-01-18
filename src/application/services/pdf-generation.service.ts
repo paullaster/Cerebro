@@ -33,15 +33,14 @@ export interface PdfGenerationResult {
 @Injectable()
 export class PdfGenerationService {
     private worker: Worker;
-    private readonly pdfDocument: PDFDocument;
 
     constructor(
         @Inject('ILogger') private readonly logger: ILogger,
         @Inject('IStorageService') private readonly storageService: IStorageService,
         @Inject('ICollectionRepository') private readonly collectionRepository: ICollectionRepository,
         private readonly configService: ConfigService,
+        private readonly pdfDocument: PDFDocument,
     ) {
-        this.pdfDocument = new PDFDocument();
         this.setupWorker();
     }
 

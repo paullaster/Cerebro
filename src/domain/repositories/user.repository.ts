@@ -1,7 +1,7 @@
-import { User, UserRole } from '../entities/user.entity';
-import { UUIDv7 } from '../value-objects/uuid-v7.value-object';
-import { Email } from '../value-objects/email.value-object';
-import { PhoneNumber } from '../value-objects/phone-number.value-object';
+import { User, UserRole } from '../entities/user.entity.ts';
+import { UUIDv7 } from '../value-objects/uuid-v7.value-object.ts';
+import { Email } from '../value-objects/email.value-object.ts';
+import { PhoneNumber } from '../value-objects/phone-number.value-object.ts';
 
 export interface IUserRepository {
     // Find operations

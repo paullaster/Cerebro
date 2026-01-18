@@ -1,19 +1,70 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
-import { PrismaService } from '../prisma.service';
-import { ICollectionRepository, DateRange } from '../../../domain/repositories/collection.repository';
-import { Collection, CollectionStatus, CollectionGrade } from '../../../domain/entities/collection.entity';
-import { UUIDv7 } from '../../../domain/value-objects/uuid-v7.value-object';
-import { Money } from '../../../domain/value-objects/money.value-object';
-import { CollectionMapper } from '../mappers/collection.mapper';
-import { EntityNotFoundException } from '../../../domain/exceptions/domain.exception';
+import { PrismaService } from '../prisma.service.ts';
+import { ICollectionRepository, DateRange } from '../../../domain/repositories/collection.repository.ts';
+import { Collection, CollectionStatus, CollectionGrade } from '../../../domain/entities/collection.entity.ts';
+import { UUIDv7 } from '../../../domain/value-objects/uuid-v7.value-object.ts';
+import { Money } from '../../../domain/value-objects/money.value-object.ts';
+import { CollectionMapper } from '../mappers/collection.mapper.ts';
+import { EntityNotFoundException } from '../../../domain/exceptions/domain.exception.ts';
+
+import { Invoice } from '../../../domain/entities/invoice.entity';
+import { InvoiceMapper } from '../mappers/invoice.mapper';
 
 @Injectable()
 export class PrismaCollectionRepository implements ICollectionRepository, OnModuleInit {
     constructor(private readonly prisma: PrismaService) { }
 
-    async onModuleInit(): Promise<void> {
-        // Initialize connection pool
-        await this.prisma.$connect();
+    // ... existing onModuleInit
+
+    async saveWithInvoice(collection: Collection, invoice: Invoice): Promise<void> {
+        const colPersistence = CollectionMapper.toPersistence(collection);
+        const invPersistence = InvoiceMapper.toPersistence(invoice);
+
+        // We use $transaction with raw queries because tables are partitioned
+        await this.prisma.$transaction(async (tx) => {
+            // 1. Insert Collection
+            await tx.$executeRaw`
+                INSERT INTO collections (
+                    id, store_agent_id, farmer_id, produce_type_id,
+                    weight_kg, quality_grade, applied_rate, calculated_payout_amount,
+                    status, notes, collected_at, verified_at,
+                    created_at, updated_at, partition_date
+                ) VALUES (
+                    ${colPersistence.id}::uuid,
+                    ${colPersistence.store_agent_id}::uuid,
+                    ${colPersistence.farmer_id}::uuid,
+                    ${colPersistence.produce_type_id}::uuid,
+                    ${colPersistence.weight_kg},
+                    ${colPersistence.quality_grade},
+                    ${colPersistence.applied_rate},
+                    ${colPersistence.calculated_payout_amount},
+                    ${colPersistence.status},
+                    ${colPersistence.notes},
+                    ${colPersistence.collected_at},
+                    ${colPersistence.verified_at},
+                    ${colPersistence.created_at},
+                    ${colPersistence.updated_at},
+                    ${colPersistence.partition_date}
+                )
+             `;
+
+            // 2. Insert Invoice
+            await tx.$executeRaw`
+                INSERT INTO invoices (
+                    id, collection_id, amount, status, qr_code_url,
+                    created_at, updated_at, partition_date
+                ) VALUES (
+                    ${invPersistence.id}::uuid,
+                    ${invPersistence.collection_id}::uuid,
+                    ${invPersistence.amount},
+                    ${invPersistence.status},
+                    ${invPersistence.qr_code_url},
+                    ${invPersistence.created_at},
+                    ${invPersistence.updated_at},
+                    ${invPersistence.partition_date}
+                )
+             `;
+        });
     }
 
     async findById(id: UUIDv7): Promise<Collection | null> {

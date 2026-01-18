@@ -1,4 +1,4 @@
-import { ILogger } from '../../domain/adapters/logger.service';
+import { ILogger } from '../../domain/adapters/logger.service.ts';
 
 export abstract class BaseUseCase<Input, Output> {
     protected readonly logger: ILogger;
@@ -28,7 +28,7 @@ export abstract class BaseUseCase<Input, Output> {
             });
 
             return result;
-        } catch (error) {
+        } catch (error: any) {
             const duration = Date.now() - startTime;
             this.logger.error(context, 'Use case execution failed', error, {
                 duration,

@@ -9,10 +9,10 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { UseGuards, Inject } from '@nestjs/common';
-import { WsAdminGuard } from '../middleware/guards/ws-admin.guard';
-import { ILogger } from '../../domain/adapters/logger.service';
-import { ICollectionRepository } from '../../domain/repositories/collection.repository';
-import { IMetricsService } from '../../domain/adapters/metrics.service';
+import { WsAdminGuard } from '../middleware/guards/ws-admin.guard.ts';
+import { ILogger } from '../../domain/adapters/logger.service.ts';
+import { ICollectionRepository } from '../../domain/repositories/collection.repository.ts';
+import { IMetricsService } from '../../domain/adapters/metrics.service.ts';
 
 @WebSocketGateway({
     namespace: 'dashboard',

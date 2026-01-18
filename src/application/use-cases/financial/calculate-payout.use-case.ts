@@ -1,15 +1,15 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { BaseUseCase } from '../../core/base.use-case';
-import { ILogger } from '../../../domain/adapters/logger.service';
-import { ILoanRepository } from '../../../domain/repositories/loan.repository';
-import { ICollectionRepository } from '../../../domain/repositories/collection.repository';
-import { IConfigService } from '../../services/config.service';
-import { Money } from '../../../domain/value-objects/money.value-object';
-import { UUIDv7 } from '../../../domain/value-objects/uuid-v7.value-object';
+import { BaseUseCase } from '../../core/base.use-case.ts';
+import { ILogger } from '../../../domain/adapters/logger.service.ts';
+import { ILoanRepository } from '../../../domain/repositories/loan.repository.ts';
+import { ICollectionRepository } from '../../../domain/repositories/collection.repository.ts';
+import { IConfigService } from '../../services/config.service.ts';
+import { Money } from '../../../domain/value-objects/money.value-object.ts';
+import { UUIDv7 } from '../../../domain/value-objects/uuid-v7.value-object.ts';
 import {
     EntityNotFoundException,
     BusinessRuleException,
-} from '../../../domain/exceptions/domain.exception';
+} from '../../../domain/exceptions/domain.exception.ts';
 
 export interface CalculatePayoutInput {
     farmerId: string;

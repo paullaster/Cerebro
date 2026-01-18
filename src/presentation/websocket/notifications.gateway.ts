@@ -11,10 +11,10 @@ import { Server, Socket } from 'socket.io';
 import { UseGuards, Inject, Logger } from '@nestjs/common';
 import { Redis } from 'ioredis';
 import { createAdapter } from '@socket.io/redis-adapter';
-import { WsAuthGuard } from '../middleware/guards/ws-auth.guard';
-import { ConfigService } from '../../config/config.service';
-import { ILogger } from '../../domain/adapters/logger.service';
-import { IRealTimeService } from '../../domain/adapters/real-time.service';
+import { WsAuthGuard } from '../middleware/guards/ws-auth.guard.ts';
+import { ConfigService } from '../../config/config.service.ts';
+import { ILogger } from '../../domain/adapters/logger.service.ts';
+import { IRealTimeService } from '../../domain/adapters/real-time.service.ts';
 
 @WebSocketGateway({
     namespace: 'notifications',

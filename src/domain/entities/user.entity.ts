@@ -1,12 +1,14 @@
-import { Entity } from './base.entity';
-import { UUIDv7 } from '../value-objects/uuid-v7.value-object';
-import { Email } from '../value-objects/email.value-object';
-import { PhoneNumber } from '../value-objects/phone-number.value-object';
+import { Entity, DomainEvent } from './base.entity.ts';
+import { UUIDv7 } from '../value-objects/uuid-v7.value-object.ts';
+import { Email } from '../value-objects/email.value-object.ts';
+import { PhoneNumber } from '../value-objects/phone-number.value-object.ts';
+import bcrypt from 'bcrypt';
 
 export enum UserRole {
     SUPER_ADMIN = 'SUPER_ADMIN',
     ADMIN = 'ADMIN',
-    AGENT = 'AGENT',
+    AGENT_COLLECTION = 'AGENT_COLLECTION',
+    AGENT_STORE = 'AGENT_STORE',
     FARMER = 'FARMER',
 }
 
@@ -147,6 +149,10 @@ export class User extends Entity<UUIDv7> {
         this.markAsUpdated();
     }
 
+    async validatePassword(password: string): Promise<boolean> {
+        return bcrypt.compare(password, this.passwordHash);
+    }
+
     promoteToRole(newRole: UserRole): void {
         if (this.role === UserRole.SUPER_ADMIN) {
             throw new Error('Cannot change super admin role');
@@ -164,10 +170,40 @@ export class User extends Entity<UUIDv7> {
     }
 
     canVerifyCollections(): boolean {
-        return this.role === UserRole.AGENT || this.isAdmin();
+        return this.role === UserRole.AGENT_COLLECTION || this.isAdmin();
     }
 
-    isVerified(): boolean {
-        return this.verificationStatus === VerificationStatus.VERIFIED;
+    // Reconstitution
+    static reconstitute(props: {
+        id: UUIDv7;
+        email: Email;
+        phoneNumber: PhoneNumber;
+        nationalId: string | null;
+        passwordHash: string;
+        role: UserRole;
+        isEmailVerified: boolean;
+        isPhoneVerified: boolean;
+        verificationStatus: VerificationStatus;
+        profilePhotoUrl: string | null;
+        createdAt: Date;
+        updatedAt: Date;
+    }): User {
+        const user = new User(
+            props.id,
+            props.email,
+            props.phoneNumber,
+            props.passwordHash,
+            props.role,
+        );
+        user.nationalId = props.nationalId;
+        user.isEmailVerified = props.isEmailVerified;
+        user.isPhoneVerified = props.isPhoneVerified;
+        user.verificationStatus = props.verificationStatus;
+        user.profilePhotoUrl = props.profilePhotoUrl;
+        user.createdAt = props.createdAt;
+        user.updatedAt = props.updatedAt;
+
+        user.clearDomainEvents(); // Clear creation event
+        return user;
     }
 }

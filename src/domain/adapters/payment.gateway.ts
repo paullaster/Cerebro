@@ -1,5 +1,5 @@
-import { Money } from '../value-objects/money.value-object';
-import { UUIDv7 } from '../value-objects/uuid-v7.value-object';
+import { Money } from '../value-objects/money.value-object.ts';
+import { UUIDv7 } from '../value-objects/uuid-v7.value-object.ts';
 
 export interface PaymentRequest {
     amount: Money;

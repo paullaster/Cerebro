@@ -1,4 +1,4 @@
-import { UUIDv7 } from '../value-objects/uuid-v7.value-object';
+import { UUIDv7 } from '../value-objects/uuid-v7.value-object.ts';
 
 export abstract class AggregateRoot {
     private domainEvents: DomainEvent[] = [];
