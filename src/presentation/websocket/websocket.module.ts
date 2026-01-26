@@ -6,14 +6,14 @@ import { SocketIoRealTimeAdapter } from '../../infrastructure/adapters/socket-io
 
 @Global()
 @Module({
-    imports: [ConfigModule, AuthModule],
-    providers: [
-        AppGateway,
-        {
-            provide: 'IRealTimeService',
-            useClass: SocketIoRealTimeAdapter,
-        },
-    ],
-    exports: [AppGateway, 'IRealTimeService'],
+  imports: [ConfigModule, AuthModule],
+  providers: [
+    AppGateway,
+    {
+      provide: 'IRealTimeService',
+      useClass: SocketIoRealTimeAdapter,
+    },
+  ],
+  exports: [AppGateway, 'IRealTimeService'],
 })
-export class WebSocketModule { }
+export class WebSocketModule {}

@@ -1,41 +1,26 @@
 {
     "compilerOptions": {
-        "module": "NodeNext",
-        "moduleResolution": "NodeNext",
-        "target": "esnext",
-        "noEmit": false,
-        "rewriteRelativeImportExtensions": true,
-        "allowSyntheticDefaultImports": true,
-        "lib": [
-            "ESNext"
-        ],
-        "outDir": "./dist",
-        "rootDir": "./src",
-        "strict": true,
+        "module": "nodenext",
+        "moduleResolution": "nodenext",
+        "resolvePackageJsonExports": true,
         "esModuleInterop": true,
-        "skipLibCheck": true,
-        "forceConsistentCasingInFileNames": true,
-        "experimentalDecorators": true,
-        "emitDecoratorMetadata": true,
+        "isolatedModules": true,
         "declaration": true,
-        "removeComments": false,
+        "removeComments": true,
+        "emitDecoratorMetadata": true,
+        "experimentalDecorators": true,
+        "allowSyntheticDefaultImports": true,
+        "target": "ES2023",
         "sourceMap": true,
+        "outDir": "./dist",
+        "baseUrl": "./",
         "incremental": true,
-        "noFallthroughCasesInSwitch": true,
-        "noImplicitOverride": true,
-        "noImplicitReturns": true,
-        "noUncheckedIndexedAccess": true,
-        "noUnusedLocals": true,
-        "noUnusedParameters": true,
-        "resolveJsonModule": true,
-        "useDefineForClassFields": false
-    },
-    "include": [
-        "src/**/*"
-    ],
-    "exclude": [
-        "node_modules",
-        "dist",
-        "**/*.test.ts"
-    ]
+        "skipLibCheck": true,
+        "strictNullChecks": true,
+        "forceConsistentCasingInFileNames": true,
+        "noImplicitAny": false,
+        "strictBindCallApply": false,
+        "noFallthroughCasesInSwitch": false,
+        "allowImportingTsExtensions": true
+    }
 }

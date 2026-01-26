@@ -1,7 +1,14 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { PrismaService } from '../prisma.service.ts';
-import { ICollectionRepository, DateRange } from '../../../domain/repositories/collection.repository.ts';
-import { Collection, CollectionStatus, CollectionGrade } from '../../../domain/entities/collection.entity.ts';
+import {
+  ICollectionRepository,
+  DateRange,
+} from '../../../domain/repositories/collection.repository.ts';
+import {
+  Collection,
+  CollectionStatus,
+  CollectionGrade,
+} from '../../../domain/entities/collection.entity.ts';
 import { UUIDv7 } from '../../../domain/value-objects/uuid-v7.value-object.ts';
 import { Money } from '../../../domain/value-objects/money.value-object.ts';
 import { CollectionMapper } from '../mappers/collection.mapper.ts';
@@ -11,19 +18,24 @@ import { Invoice } from '../../../domain/entities/invoice.entity';
 import { InvoiceMapper } from '../mappers/invoice.mapper';
 
 @Injectable()
-export class PrismaCollectionRepository implements ICollectionRepository, OnModuleInit {
-    constructor(private readonly prisma: PrismaService) { }
+export class PrismaCollectionRepository
+  implements ICollectionRepository, OnModuleInit
+{
+  constructor(private readonly prisma: PrismaService) {}
 
-    // ... existing onModuleInit
+  // ... existing onModuleInit
 
-    async saveWithInvoice(collection: Collection, invoice: Invoice): Promise<void> {
-        const colPersistence = CollectionMapper.toPersistence(collection);
-        const invPersistence = InvoiceMapper.toPersistence(invoice);
+  async saveWithInvoice(
+    collection: Collection,
+    invoice: Invoice,
+  ): Promise<void> {
+    const colPersistence = CollectionMapper.toPersistence(collection);
+    const invPersistence = InvoiceMapper.toPersistence(invoice);
 
-        // We use $transaction with raw queries because tables are partitioned
-        await this.prisma.$transaction(async (tx) => {
-            // 1. Insert Collection
-            await tx.$executeRaw`
+    // We use $transaction with raw queries because tables are partitioned
+    await this.prisma.$transaction(async (tx) => {
+      // 1. Insert Collection
+      await tx.$executeRaw`
                 INSERT INTO collections (
                     id, store_agent_id, farmer_id, produce_type_id,
                     weight_kg, quality_grade, applied_rate, calculated_payout_amount,
@@ -48,8 +60,8 @@ export class PrismaCollectionRepository implements ICollectionRepository, OnModu
                 )
              `;
 
-            // 2. Insert Invoice
-            await tx.$executeRaw`
+      // 2. Insert Invoice
+      await tx.$executeRaw`
                 INSERT INTO invoices (
                     id, collection_id, amount, status, qr_code_url,
                     created_at, updated_at, partition_date
@@ -64,40 +76,42 @@ export class PrismaCollectionRepository implements ICollectionRepository, OnModu
                     ${invPersistence.partition_date}
                 )
              `;
-        });
-    }
+    });
+  }
 
-    async findById(id: UUIDv7): Promise<Collection | null> {
-        const result = await this.prisma.$queryRaw<Array<any>>`
+  async findById(id: UUIDv7): Promise<Collection | null> {
+    const result = await this.prisma.$queryRaw<Array<any>>`
       SELECT * FROM collections 
       WHERE id = ${id.toString()}::uuid
       LIMIT 1
     `;
 
-        if (result.length === 0) {
-            return null;
-        }
-
-        // Need to fetch relations separately due to partitioning
-        const [agent, farmer, produce] = await Promise.all([
-            this.prisma.user.findUnique({ where: { id: result[0].store_agent_id } }),
-            this.prisma.user.findUnique({ where: { id: result[0].farmer_id } }),
-            this.prisma.produceType.findUnique({ where: { id: result[0].produce_type_id } }),
-        ]);
-
-        return CollectionMapper.toDomain({
-            ...result[0],
-            agent,
-            farmer,
-            produce,
-        });
+    if (result.length === 0) {
+      return null;
     }
 
-    async save(collection: Collection): Promise<Collection> {
-        const persistence = CollectionMapper.toPersistence(collection);
+    // Need to fetch relations separately due to partitioning
+    const [agent, farmer, produce] = await Promise.all([
+      this.prisma.user.findUnique({ where: { id: result[0].store_agent_id } }),
+      this.prisma.user.findUnique({ where: { id: result[0].farmer_id } }),
+      this.prisma.produceType.findUnique({
+        where: { id: result[0].produce_type_id },
+      }),
+    ]);
 
-        // Use raw query for partitioned table
-        const result = await this.prisma.$queryRaw<Array<any>>`
+    return CollectionMapper.toDomain({
+      ...result[0],
+      agent,
+      farmer,
+      produce,
+    });
+  }
+
+  async save(collection: Collection): Promise<Collection> {
+    const persistence = CollectionMapper.toPersistence(collection);
+
+    // Use raw query for partitioned table
+    const result = await this.prisma.$queryRaw<Array<any>>`
       INSERT INTO collections (
         id, store_agent_id, farmer_id, produce_type_id,
         weight_kg, quality_grade, applied_rate, calculated_payout_amount,
@@ -123,27 +137,32 @@ export class PrismaCollectionRepository implements ICollectionRepository, OnModu
       RETURNING *
     `;
 
-        // Fetch relations
-        const [agent, farmer, produce] = await Promise.all([
-            this.prisma.user.findUnique({ where: { id: persistence.store_agent_id } }),
-            this.prisma.user.findUnique({ where: { id: persistence.farmer_id } }),
-            this.prisma.produceType.findUnique({ where: { id: persistence.produce_type_id } }),
-        ]);
+    // Fetch relations
+    const [agent, farmer, produce] = await Promise.all([
+      this.prisma.user.findUnique({
+        where: { id: persistence.store_agent_id },
+      }),
+      this.prisma.user.findUnique({ where: { id: persistence.farmer_id } }),
+      this.prisma.produceType.findUnique({
+        where: { id: persistence.produce_type_id },
+      }),
+    ]);
 
-        return CollectionMapper.toDomain({
-            ...result[0],
-            agent,
-            farmer,
-            produce,
-        });
-    }
+    return CollectionMapper.toDomain({
+      ...result[0],
+      agent,
+      farmer,
+      produce,
+    });
+  }
 
-    async bulkInsert(collections: Collection[]): Promise<void> {
-        if (collections.length === 0) return;
+  async bulkInsert(collections: Collection[]): Promise<void> {
+    if (collections.length === 0) return;
 
-        const values = collections.map(col => {
-            const persistence = CollectionMapper.toPersistence(col);
-            return `(
+    const values = collections
+      .map((col) => {
+        const persistence = CollectionMapper.toPersistence(col);
+        return `(
         '${persistence.id}',
         '${persistence.store_agent_id}',
         '${persistence.farmer_id}',
@@ -160,9 +179,10 @@ export class PrismaCollectionRepository implements ICollectionRepository, OnModu
         '${persistence.updated_at.toISOString()}',
         '${persistence.partition_date.toISOString().split('T')[0]}'
       )`;
-        }).join(',');
+      })
+      .join(',');
 
-        await this.prisma.$executeRawUnsafe(`
+    await this.prisma.$executeRawUnsafe(`
       INSERT INTO collections (
         id, store_agent_id, farmer_id, produce_type_id,
         weight_kg, quality_grade, applied_rate, calculated_payout_amount,
@@ -171,20 +191,23 @@ export class PrismaCollectionRepository implements ICollectionRepository, OnModu
       ) VALUES ${values}
       ON CONFLICT (id) DO NOTHING
     `);
-    }
+  }
 
-    async getDailySummary(date: Date): Promise<{
-        totalWeight: number;
-        totalAmount: Money;
-        count: number;
-        byGrade: Record<CollectionGrade, { count: number; weight: number; amount: Money }>;
-    }> {
-        const start = new Date(date);
-        start.setHours(0, 0, 0, 0);
-        const end = new Date(date);
-        end.setHours(23, 59, 59, 999);
+  async getDailySummary(date: Date): Promise<{
+    totalWeight: number;
+    totalAmount: Money;
+    count: number;
+    byGrade: Record<
+      CollectionGrade,
+      { count: number; weight: number; amount: Money }
+    >;
+  }> {
+    const start = new Date(date);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(date);
+    end.setHours(23, 59, 59, 999);
 
-        const result = await this.prisma.$queryRaw<Array<any>>`
+    const result = await this.prisma.$queryRaw<Array<any>>`
       SELECT 
         COUNT(*) as count,
         COALESCE(SUM(weight_kg), 0) as total_weight,
@@ -205,53 +228,57 @@ export class PrismaCollectionRepository implements ICollectionRepository, OnModu
       GROUP BY quality_grade
     `;
 
-        const summary = {
-            totalWeight: 0,
-            totalAmount: Money.zero(),
-            count: 0,
-            byGrade: {
-                [CollectionGrade.A]: { count: 0, weight: 0, amount: Money.zero() },
-                [CollectionGrade.B]: { count: 0, weight: 0, amount: Money.zero() },
-                [CollectionGrade.C]: { count: 0, weight: 0, amount: Money.zero() },
-            },
+    const summary = {
+      totalWeight: 0,
+      totalAmount: Money.zero(),
+      count: 0,
+      byGrade: {
+        [CollectionGrade.A]: { count: 0, weight: 0, amount: Money.zero() },
+        [CollectionGrade.B]: { count: 0, weight: 0, amount: Money.zero() },
+        [CollectionGrade.C]: { count: 0, weight: 0, amount: Money.zero() },
+      },
+    };
+
+    for (const row of result) {
+      summary.totalWeight += parseFloat(row.total_weight) || 0;
+      summary.totalAmount = summary.totalAmount.add(
+        new Money(row.total_amount || 0),
+      );
+      summary.count += parseInt(row.count) || 0;
+
+      if (row.quality_grade === 'A') {
+        summary.byGrade.A = {
+          count: parseInt(row.grade_a_count) || 0,
+          weight: parseFloat(row.grade_a_weight) || 0,
+          amount: new Money(row.grade_a_amount || 0),
         };
-
-        for (const row of result) {
-            summary.totalWeight += parseFloat(row.total_weight) || 0;
-            summary.totalAmount = summary.totalAmount.add(new Money(row.total_amount || 0));
-            summary.count += parseInt(row.count) || 0;
-
-            if (row.quality_grade === 'A') {
-                summary.byGrade.A = {
-                    count: parseInt(row.grade_a_count) || 0,
-                    weight: parseFloat(row.grade_a_weight) || 0,
-                    amount: new Money(row.grade_a_amount || 0),
-                };
-            } else if (row.quality_grade === 'B') {
-                summary.byGrade.B = {
-                    count: parseInt(row.grade_b_count) || 0,
-                    weight: parseFloat(row.grade_b_weight) || 0,
-                    amount: new Money(row.grade_b_amount || 0),
-                };
-            } else if (row.quality_grade === 'C') {
-                summary.byGrade.C = {
-                    count: parseInt(row.grade_c_count) || 0,
-                    weight: parseFloat(row.grade_c_weight) || 0,
-                    amount: new Money(row.grade_c_amount || 0),
-                };
-            }
-        }
-
-        return summary;
+      } else if (row.quality_grade === 'B') {
+        summary.byGrade.B = {
+          count: parseInt(row.grade_b_count) || 0,
+          weight: parseFloat(row.grade_b_weight) || 0,
+          amount: new Money(row.grade_b_amount || 0),
+        };
+      } else if (row.quality_grade === 'C') {
+        summary.byGrade.C = {
+          count: parseInt(row.grade_c_count) || 0,
+          weight: parseFloat(row.grade_c_weight) || 0,
+          amount: new Money(row.grade_c_amount || 0),
+        };
+      }
     }
 
-    async getPartitionInfo(): Promise<Array<{
-        partitionName: string;
-        tableSpace: string;
-        rowCount: number;
-        size: string;
-    }>> {
-        return this.prisma.$queryRaw<Array<any>>`
+    return summary;
+  }
+
+  async getPartitionInfo(): Promise<
+    Array<{
+      partitionName: string;
+      tableSpace: string;
+      rowCount: number;
+      size: string;
+    }>
+  > {
+    return this.prisma.$queryRaw<Array<any>>`
       SELECT 
         child.relname as partition_name,
         pg_size_pretty(pg_total_relation_size(child.oid)) as size,
@@ -264,5 +291,5 @@ export class PrismaCollectionRepository implements ICollectionRepository, OnModu
       WHERE parent.relname = 'collections'
       ORDER BY child.relname
     `;
-    }
+  }
 }

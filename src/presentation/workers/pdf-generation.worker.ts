@@ -6,112 +6,116 @@ import { ConfigService } from '../../config/config.service.ts';
 import { IStorageService } from '../../domain/adapters/storage.service.ts';
 
 export class PdfGenerationWorker {
-    private readonly logger = new Logger(PdfGenerationWorker.name);
-    private worker: Worker;
-    private templateCache = new Map<string, handlebars.TemplateDelegate>();
+  private readonly logger = new Logger(PdfGenerationWorker.name);
+  private worker: Worker;
+  private templateCache = new Map<string, handlebars.TemplateDelegate>();
 
-    constructor(
-        private readonly configService: ConfigService,
-        private readonly storageService: IStorageService,
-    ) {
-        this.registerHelpers();
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly storageService: IStorageService,
+  ) {
+    this.registerHelpers();
+  }
+
+  private registerHelpers(): void {
+    handlebars.registerHelper('formatCurrency', (amount: number) => {
+      return new Intl.NumberFormat('en-KE', {
+        style: 'currency',
+        currency: 'KES',
+      }).format(amount);
+    });
+
+    handlebars.registerHelper('formatDate', (date: string | Date) => {
+      return new Date(date).toLocaleDateString('en-KE', {
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric',
+      });
+    });
+  }
+
+  async start(): Promise<void> {
+    this.worker = new Worker(
+      'pdf-generation',
+      async (job: Job) => {
+        return await this.generatePdf(job.data);
+      },
+      {
+        connection: {
+          url: this.configService.redisUrl,
+        },
+        concurrency: this.configService.pdfWorkerConcurrency || 2,
+      },
+    );
+    // ... existing event listeners ...
+
+    this.worker.on('completed', (job: Job) => {
+      this.logger.log(`PDF generated for job ${job.id}`);
+    });
+
+    this.worker.on('failed', (job: Job, error: Error) => {
+      this.logger.error(`PDF generation failed for job ${job.id}:`, error);
+    });
+  }
+
+  private async generatePdf(data: {
+    type: 'invoice' | 'receipt' | 'report';
+    template: string;
+    data: any;
+    options?: {
+      format?: 'A4' | 'Letter';
+      margin?: { top: string; right: string; bottom: string; left: string };
+      landscape?: boolean;
+    };
+  }): Promise<{ url: string; key: string }> {
+    let browser;
+    try {
+      browser = await puppeteer.launch({
+        headless: 'new',
+        args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      });
+
+      const page = await browser.newPage();
+
+      // Render HTML template
+      const html = this.renderTemplate(data.template, data.data);
+
+      await page.setContent(html, { waitUntil: 'networkidle0' });
+
+      // Generate PDF
+      const pdfBuffer = await page.pdf({
+        format: data.options?.format || 'A4',
+        margin: data.options?.margin || {
+          top: '20mm',
+          right: '15mm',
+          bottom: '20mm',
+          left: '15mm',
+        },
+        printBackground: true,
+        landscape: data.options?.landscape || false,
+      });
+
+      // Upload to storage
+      const key = `documents/${data.type}/${Date.now()}-${data.data.id}.pdf`;
+      const url = await this.storageService.upload(key, pdfBuffer);
+
+      return { url, key };
+    } finally {
+      if (browser) {
+        await browser.close();
+      }
     }
+  }
 
-    private registerHelpers(): void {
-        handlebars.registerHelper('formatCurrency', (amount: number) => {
-            return new Intl.NumberFormat('en-KE', {
-                style: 'currency',
-                currency: 'KES',
-            }).format(amount);
-        });
+  private renderTemplate(
+    templateName: string,
+    templateSource: string,
+    data: any,
+  ): string {
+    let compiledTemplate = this.templateCache.get(templateName);
 
-        handlebars.registerHelper('formatDate', (date: string | Date) => {
-            return new Date(date).toLocaleDateString('en-KE', {
-                day: '2-digit',
-                month: 'long',
-                year: 'numeric',
-            });
-        });
-    }
-
-    async start(): Promise<void> {
-        this.worker = new Worker(
-            'pdf-generation',
-            async (job: Job) => {
-                return await this.generatePdf(job.data);
-            },
-            {
-                connection: {
-                    url: this.configService.redisUrl,
-                },
-                concurrency: this.configService.pdfWorkerConcurrency || 2,
-            },
-        );
-        // ... existing event listeners ...
-
-        this.worker.on('completed', (job: Job) => {
-            this.logger.log(`PDF generated for job ${job.id}`);
-        });
-
-        this.worker.on('failed', (job: Job, error: Error) => {
-            this.logger.error(`PDF generation failed for job ${job.id}:`, error);
-        });
-    }
-
-    private async generatePdf(data: {
-        type: 'invoice' | 'receipt' | 'report';
-        template: string;
-        data: any;
-        options?: {
-            format?: 'A4' | 'Letter';
-            margin?: { top: string; right: string; bottom: string; left: string };
-            landscape?: boolean;
-        };
-    }): Promise<{ url: string; key: string }> {
-        let browser;
-        try {
-            browser = await puppeteer.launch({
-                headless: 'new',
-                args: ['--no-sandbox', '--disable-setuid-sandbox'],
-            });
-
-            const page = await browser.newPage();
-
-            // Render HTML template
-            const html = this.renderTemplate(data.template, data.data);
-
-            await page.setContent(html, { waitUntil: 'networkidle0' });
-
-            // Generate PDF
-            const pdfBuffer = await page.pdf({
-                format: data.options?.format || 'A4',
-                margin: data.options?.margin || {
-                    top: '20mm',
-                    right: '15mm',
-                    bottom: '20mm',
-                    left: '15mm',
-                },
-                printBackground: true,
-                landscape: data.options?.landscape || false,
-            });
-
-            // Upload to storage
-            const key = `documents/${data.type}/${Date.now()}-${data.data.id}.pdf`;
-            const url = await this.storageService.upload(key, pdfBuffer);
-
-            return { url, key };
-        } finally {
-            if (browser) {
-                await browser.close();
-            }
-        }
-    }
-
-    private renderTemplate(templateName: string, templateSource: string, data: any): string {
-        let compiledTemplate = this.templateCache.get(templateName);
-
-        if (!compiledTemplate) {
-            compiledTemplate = handlebars.compile(`
+    if (!compiledTemplate) {
+      compiledTemplate = handlebars.compile(`
         <!DOCTYPE html>
         <html>
           <head>
@@ -178,15 +182,15 @@ export class PdfGenerationWorker {
           </body>
         </html>
       `);
-            this.templateCache.set(templateName, compiledTemplate);
-        }
-
-        return compiledTemplate(data);
+      this.templateCache.set(templateName, compiledTemplate);
     }
 
-    async stop(): Promise<void> {
-        if (this.worker) {
-            await this.worker.close();
-        }
+    return compiledTemplate(data);
+  }
+
+  async stop(): Promise<void> {
+    if (this.worker) {
+      await this.worker.close();
     }
+  }
 }

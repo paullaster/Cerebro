@@ -11,33 +11,33 @@ import { DatabaseModule } from '../database/database.module.ts';
 
 @Global()
 @Module({
-    imports: [
-        PassportModule,
-        ConfigModule,
-        DatabaseModule,
-        JwtModule.registerAsync({
-            imports: [ConfigModule],
-            inject: [ConfigService],
-            useFactory: async (configService: ConfigService) => ({
-                secret: configService.jwtSecret,
-                signOptions: { expiresIn: configService.jwtExpiration },
-            }),
-        }),
-    ],
-    providers: [
-        {
-            provide: 'IJwtService',
-            useClass: JwtAdapter,
-        },
-        RegisterFarmerUseCase,
-        LoginUseCase,
-        VerifyOtpUseCase,
-    ],
-    exports: [
-        'IJwtService',
-        RegisterFarmerUseCase,
-        LoginUseCase,
-        VerifyOtpUseCase,
-    ],
+  imports: [
+    PassportModule,
+    ConfigModule,
+    DatabaseModule,
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: async (configService: ConfigService) => ({
+        secret: configService.jwtSecret,
+        signOptions: { expiresIn: configService.jwtExpiration },
+      }),
+    }),
+  ],
+  providers: [
+    {
+      provide: 'IJwtService',
+      useClass: JwtAdapter,
+    },
+    RegisterFarmerUseCase,
+    LoginUseCase,
+    VerifyOtpUseCase,
+  ],
+  exports: [
+    'IJwtService',
+    RegisterFarmerUseCase,
+    LoginUseCase,
+    VerifyOtpUseCase,
+  ],
 })
-export class AuthModule { }
+export class AuthModule {}

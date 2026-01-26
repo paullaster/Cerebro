@@ -1,26 +1,29 @@
-import { OtpVerification, OtpType } from '../../../domain/entities/otp-verification.entity.ts';
+import {
+  OtpVerification,
+  OtpType,
+} from '../../../domain/entities/otp-verification.entity.ts';
 import { UUIDv7 } from '../../../domain/value-objects/uuid-v7.value-object.ts';
 
 export class OtpVerificationMapper {
-    static toDomain(raw: any): OtpVerification {
-        if (!raw) return null;
+  static toDomain(raw: any): OtpVerification {
+    if (!raw) return null;
 
-        return new OtpVerification(
-            new UUIDv7(raw.id),
-            raw.identifier,
-            raw.code_hash,
-            raw.type as OtpType,
-            new Date(raw.expires_at),
-        );
-    }
+    return new OtpVerification(
+      new UUIDv7(raw.id),
+      raw.identifier,
+      raw.code_hash,
+      raw.type as OtpType,
+      new Date(raw.expires_at),
+    );
+  }
 
-    static toPersistence(entity: OtpVerification): any {
-        return {
-            id: entity.getId().toString(),
-            identifier: entity.identifier,
-            code_hash: entity.codeHash,
-            type: entity.type,
-            expires_at: entity.expiresAt,
-        };
-    }
+  static toPersistence(entity: OtpVerification): any {
+    return {
+      id: entity.getId().toString(),
+      identifier: entity.identifier,
+      code_hash: entity.codeHash,
+      type: entity.type,
+      expires_at: entity.expiresAt,
+    };
+  }
 }

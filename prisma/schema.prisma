@@ -1,13 +1,11 @@
 generator client {
-  provider        = "prisma-client-js"
-  previewFeatures = ["multiSchema", "postgresqlExtensions"]
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+  engineType      = "client"
 }
 
 datasource db {
-  provider   = "postgresql"
-  url        = env("DATABASE_URL")
-  schemas    = ["public", "partitions", "audit"]
-  extensions = ["uuid-ossp", "pg_partman"]
+  provider = "postgresql"
 }
 
 // Enums
@@ -17,12 +15,16 @@ enum UserRole {
   AGENT_COLLECTION
   AGENT_STORE
   SUPER_ADMIN
+
+  @@schema("public")
 }
 
 enum VerificationStatus {
   PENDING
   VERIFIED
   REJECTED
+
+  @@schema("public")
 }
 
 enum CollectionStatus {
@@ -32,17 +34,23 @@ enum CollectionStatus {
   PAID
   CANCELLED
   WASTED
+
+  @@schema("public")
 }
 
 enum CollectionGrade {
   A
   B
   C
+
+  @@schema("public")
 }
 
 enum CommissionType {
   FLAT_PER_KG
   PERCENTAGE_OF_VALUE
+
+  @@schema("public")
 }
 
 enum PayoutStatus {
@@ -50,12 +58,16 @@ enum PayoutStatus {
   PROCESSING
   COMPLETED
   FAILED
+
+  @@schema("public")
 }
 
 enum WastageReason {
   SPOILAGE
   THEFT
   QUALITY_REJECTION
+
+  @@schema("public")
 }
 
 // 12.1 Core Identity Tables
@@ -92,6 +104,7 @@ model User {
   @@index([verification_status])
   @@index([created_at])
   @@map("users")
+  @@schema("public")
 }
 
 model UserPreference {
@@ -103,6 +116,7 @@ model UserPreference {
   user User @relation(fields: [user_id], references: [id])
 
   @@map("user_preferences")
+  @@schema("public")
 }
 
 model Farmer {
@@ -117,6 +131,7 @@ model Farmer {
   user User @relation(fields: [user_id], references: [id])
 
   @@map("farmers")
+  @@schema("public")
 }
 
 model Agent {
@@ -129,6 +144,7 @@ model Agent {
   commission_schema CommissionRule? @relation(fields: [commission_schema_id], references: [id])
 
   @@map("agents")
+  @@schema("public")
 }
 
 model OtpVerification {
@@ -139,6 +155,7 @@ model OtpVerification {
   expires_at DateTime @db.Timestamptz
 
   @@map("otp_verifications")
+  @@schema("public")
 }
 
 // 12.2 Operations & Collection Tables
@@ -154,6 +171,7 @@ model ProduceType {
   wastage_records      WastageRecord[]
 
   @@map("produce_types")
+  @@schema("public")
 }
 
 model MarketRate {
@@ -167,6 +185,7 @@ model MarketRate {
 
   @@unique([produce_type_id, date])
   @@map("market_rates")
+  @@schema("public")
 }
 
 // Partitioned Tables (Managed manually in SQL, but defined here for types)
@@ -192,11 +211,10 @@ model Collection {
   agent        User        @relation("AgentCollections", fields: [store_agent_id], references: [id])
   farmer       User        @relation("FarmerCollections", fields: [farmer_id], references: [id])
   produce_type ProduceType @relation(fields: [produce_type_id], references: [id])
-  invoice      Invoice?
-  wastage      WastageRecord?
 
   @@id([id, partition_date])
   @@map("collections")
+  @@schema("public")
 }
 
 model WastageRecord {
@@ -222,6 +240,7 @@ model WastageRecord {
 
   @@id([id, partition_date])
   @@map("wastage_records")
+  @@schema("public")
 }
 
 model Invoice {
@@ -240,6 +259,7 @@ model Invoice {
 
   @@id([id, partition_date])
   @@map("invoices")
+  @@schema("public")
 }
 
 // 12.3 Financial Tables
@@ -252,6 +272,7 @@ model CommissionRule {
   agents Agent[]
 
   @@map("commission_rules")
+  @@schema("public")
 }
 
 model PaymentRequest {
@@ -262,6 +283,7 @@ model PaymentRequest {
   created_at   DateTime @default(now()) @db.Timestamptz
 
   @@map("payment_requests")
+  @@schema("public")
 }
 
 model PayoutTransaction {
@@ -278,6 +300,7 @@ model PayoutTransaction {
   recipient User @relation(fields: [recipient_user_id], references: [id])
 
   @@map("payout_transactions")
+  @@schema("public")
 }
 
 // 12.4 E-commerce & Loans
@@ -294,6 +317,7 @@ model LoanRecord {
   farmer User @relation(fields: [farmer_id], references: [id])
 
   @@map("loan_records")
+  @@schema("public")
 }
 
 // 12.5 Audit & Logging
@@ -315,4 +339,5 @@ model AuditLog {
 
   @@id([id, created_at]) // Partition key is created_at
   @@map("audit_logs")
+  @@schema("public")
 }

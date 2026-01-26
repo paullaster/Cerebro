@@ -10,41 +10,41 @@ import { PrismaOtpVerificationRepository } from './repositories/prisma-otp-verif
 
 @Global()
 @Module({
-    providers: [
-        PrismaService,
-        {
-            provide: 'ICollectionRepository',
-            useClass: PrismaCollectionRepository,
-        },
-        {
-            provide: 'IWastageRecordRepository',
-            useClass: PrismaWastageRecordRepository,
-        },
-        {
-            provide: 'IInvoiceRepository',
-            useClass: PrismaInvoiceRepository,
-        },
-        {
-            provide: 'IUserRepository',
-            useClass: PrismaUserRepository,
-        },
-        {
-            provide: 'IFarmerRepository',
-            useClass: PrismaFarmerRepository,
-        },
-        {
-            provide: 'IOtpVerificationRepository',
-            useClass: PrismaOtpVerificationRepository,
-        },
-    ],
-    exports: [
-        PrismaService,
-        'ICollectionRepository',
-        'IWastageRecordRepository',
-        'IInvoiceRepository',
-        'IUserRepository',
-        'IFarmerRepository',
-        'IOtpVerificationRepository',
-    ],
+  providers: [
+    PrismaService,
+    {
+      provide: 'ICollectionRepository',
+      useClass: PrismaCollectionRepository,
+    },
+    {
+      provide: 'IWastageRecordRepository',
+      useClass: PrismaWastageRecordRepository,
+    },
+    {
+      provide: 'IInvoiceRepository',
+      useClass: PrismaInvoiceRepository,
+    },
+    {
+      provide: 'IUserRepository',
+      useClass: PrismaUserRepository,
+    },
+    {
+      provide: 'IFarmerRepository',
+      useClass: PrismaFarmerRepository,
+    },
+    {
+      provide: 'IOtpVerificationRepository',
+      useClass: PrismaOtpVerificationRepository,
+    },
+  ],
+  exports: [
+    PrismaService,
+    'ICollectionRepository',
+    'IWastageRecordRepository',
+    'IInvoiceRepository',
+    'IUserRepository',
+    'IFarmerRepository',
+    'IOtpVerificationRepository',
+  ],
 })
-export class DatabaseModule { }
+export class DatabaseModule {}

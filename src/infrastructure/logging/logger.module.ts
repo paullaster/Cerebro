@@ -8,21 +8,21 @@ import { CompositeLogger } from './composite.logger.ts';
 @Global()
 @Module({})
 export class LoggerModule {
-    static forRoot(): DynamicModule {
-        const loggerProvider: Provider = {
-            provide: 'ILogger',
-            useFactory: (configService: ConfigService): ILogger => {
-                const consoleLogger = new ConsoleLogger();
-                const sentryLogger = new SentryLogger(configService);
-                return new CompositeLogger([consoleLogger, sentryLogger]);
-            },
-            inject: [ConfigService],
-        };
+  static forRoot(): DynamicModule {
+    const loggerProvider: Provider = {
+      provide: 'ILogger',
+      useFactory: (configService: ConfigService): ILogger => {
+        const consoleLogger = new ConsoleLogger();
+        const sentryLogger = new SentryLogger(configService);
+        return new CompositeLogger([consoleLogger, sentryLogger]);
+      },
+      inject: [ConfigService],
+    };
 
-        return {
-            module: LoggerModule,
-            providers: [loggerProvider],
-            exports: ['ILogger'],
-        };
-    }
+    return {
+      module: LoggerModule,
+      providers: [loggerProvider],
+      exports: ['ILogger'],
+    };
+  }
 }

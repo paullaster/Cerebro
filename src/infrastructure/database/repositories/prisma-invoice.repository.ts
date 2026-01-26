@@ -6,17 +6,19 @@ import { UUIDv7 } from '../../../domain/value-objects/uuid-v7.value-object.ts';
 import { InvoiceMapper } from '../mappers/invoice.mapper.ts';
 
 @Injectable()
-export class PrismaInvoiceRepository implements IInvoiceRepository, OnModuleInit {
-    constructor(private readonly prisma: PrismaService) { }
+export class PrismaInvoiceRepository
+  implements IInvoiceRepository, OnModuleInit
+{
+  constructor(private readonly prisma: PrismaService) {}
 
-    async onModuleInit(): Promise<void> {
-        await this.prisma.$connect();
-    }
+  async onModuleInit(): Promise<void> {
+    await this.prisma.$connect();
+  }
 
-    async save(invoice: Invoice): Promise<Invoice> {
-        const p = InvoiceMapper.toPersistence(invoice);
+  async save(invoice: Invoice): Promise<Invoice> {
+    const p = InvoiceMapper.toPersistence(invoice);
 
-        const result = await this.prisma.$queryRaw<Array<any>>`
+    const result = await this.prisma.$queryRaw<Array<any>>`
             INSERT INTO invoices (
                 id, collection_id, amount, status, qr_code_url,
                 created_at, updated_at, partition_date
@@ -33,28 +35,28 @@ export class PrismaInvoiceRepository implements IInvoiceRepository, OnModuleInit
             RETURNING *
         `;
 
-        return InvoiceMapper.toDomain(result[0]);
-    }
+    return InvoiceMapper.toDomain(result[0]);
+  }
 
-    async findById(id: UUIDv7): Promise<Invoice | null> {
-        const result = await this.prisma.$queryRaw<Array<any>>`
+  async findById(id: UUIDv7): Promise<Invoice | null> {
+    const result = await this.prisma.$queryRaw<Array<any>>`
             SELECT * FROM invoices 
             WHERE id = ${id.toString()}::uuid
             LIMIT 1
         `;
 
-        if (result.length === 0) return null;
-        return InvoiceMapper.toDomain(result[0]);
-    }
+    if (result.length === 0) return null;
+    return InvoiceMapper.toDomain(result[0]);
+  }
 
-    async findByCollectionId(collectionId: UUIDv7): Promise<Invoice | null> {
-        const result = await this.prisma.$queryRaw<Array<any>>`
+  async findByCollectionId(collectionId: UUIDv7): Promise<Invoice | null> {
+    const result = await this.prisma.$queryRaw<Array<any>>`
             SELECT * FROM invoices 
             WHERE collection_id = ${collectionId.toString()}::uuid
             LIMIT 1
         `;
 
-        if (result.length === 0) return null;
-        return InvoiceMapper.toDomain(result[0]);
-    }
+    if (result.length === 0) return null;
+    return InvoiceMapper.toDomain(result[0]);
+  }
 }

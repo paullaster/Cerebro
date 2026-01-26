@@ -1,41 +1,42 @@
 export class Email {
-    private readonly value: string;
-    private readonly localPart: string;
-    private readonly domain: string;
+  private readonly value: string;
+  private readonly localPart: string;
+  private readonly domain: string;
 
-    constructor(value: string) {
-        if (!Email.isValid(value)) {
-            throw new Error(`Invalid email: ${value}`);
-        }
-
-        this.value = value.toLowerCase().trim();
-        const parts = this.value.split('@');
-        this.localPart = parts[0];
-        this.domain = parts[1];
+  constructor(value: string) {
+    if (!Email.isValid(value)) {
+      throw new Error(`Invalid email: ${value}`);
     }
 
-    static isValid(email: string): boolean {
-        const regex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
-        return regex.test(email);
-    }
+    this.value = value.toLowerCase().trim();
+    const parts = this.value.split('@');
+    this.localPart = parts[0];
+    this.domain = parts[1];
+  }
 
-    getValue(): string {
-        return this.value;
-    }
+  static isValid(email: string): boolean {
+    const regex =
+      /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+    return regex.test(email);
+  }
 
-    getLocalPart(): string {
-        return this.localPart;
-    }
+  getValue(): string {
+    return this.value;
+  }
 
-    getDomain(): string {
-        return this.domain;
-    }
+  getLocalPart(): string {
+    return this.localPart;
+  }
 
-    equals(other: Email): boolean {
-        return this.value === other.value;
-    }
+  getDomain(): string {
+    return this.domain;
+  }
 
-    toString(): string {
-        return this.value;
-    }
+  equals(other: Email): boolean {
+    return this.value === other.value;
+  }
+
+  toString(): string {
+    return this.value;
+  }
 }

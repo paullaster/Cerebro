@@ -1,8 +1,8 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { Worker } from 'bullmq';
 import { Readable } from 'stream';
-import { ILogger } from '../../domain/adapters/logger.service';
-import { IStorageService } from '../../domain/adapters/storage.service';
+import { ILogger } from '../../domain/adapters/logger.service.ts';
+import { IStorageService } from '../../domain/adapters/storage.service.js';
 import { IInvoiceRepository } from '../../domain/repositories/invoice.repository';
 import { ICollectionRepository } from '../../domain/repositories/collection.repository';
 import { ConfigService } from '../../config/config.service';
@@ -37,7 +37,8 @@ export class PdfGenerationService {
     constructor(
         @Inject('ILogger') private readonly logger: ILogger,
         @Inject('IStorageService') private readonly storageService: IStorageService,
-        @Inject('ICollectionRepository') private readonly collectionRepository: ICollectionRepository,
+        @Inject('ICollectionRepository')
+        private readonly collectionRepository: ICollectionRepository,
         private readonly configService: ConfigService,
         private readonly pdfDocument: PDFDocument,
     ) {
@@ -59,7 +60,7 @@ export class PdfGenerationService {
                     max: 10,
                     duration: 1000, // 10 per second
                 },
-            }
+            },
         );
 
         this.worker.on('completed', (job) => {
@@ -71,10 +72,15 @@ export class PdfGenerationService {
         });
 
         this.worker.on('failed', (job, error) => {
-            this.logger.error('PdfGenerationService', 'PDF generation failed', error, {
-                jobId: job?.id,
-                type: job?.data.type,
-            });
+            this.logger.error(
+                'PdfGenerationService',
+                'PDF generation failed',
+                error,
+                {
+                    jobId: job?.id,
+                    type: job?.data.type,
+                },
+            );
         });
     }
 
@@ -169,21 +175,19 @@ export class PdfGenerationService {
         return this.queueGeneration(request);
     }
 
-    private async queueGeneration(request: PdfGenerationRequest): Promise<PdfGenerationResult> {
-        const job = await this.worker.add(
-            `generate-${request.type}`,
-            request,
-            {
-                jobId: `${request.type}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-                attempts: 3,
-                backoff: {
-                    type: 'exponential',
-                    delay: 1000,
-                },
-                removeOnComplete: 100, // Keep last 100 jobs
-                removeOnFail: 50, // Keep last 50 failed jobs
-            }
-        );
+    private async queueGeneration(
+        request: PdfGenerationRequest,
+    ): Promise<PdfGenerationResult> {
+        const job = await this.worker.add(`generate-${request.type}`, request, {
+            jobId: `${request.type}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            attempts: 3,
+            backoff: {
+                type: 'exponential',
+                delay: 1000,
+            },
+            removeOnComplete: 100, // Keep last 100 jobs
+            removeOnFail: 50, // Keep last 50 failed jobs
+        });
 
         // Wait for completion with timeout
         return new Promise((resolve, reject) => {
@@ -248,15 +252,23 @@ export class PdfGenerationService {
                 },
             };
         } catch (error) {
-            this.logger.error('PdfGenerationService', 'PDF generation failed in job', error, {
-                jobId: job.id,
-                type,
-            });
+            this.logger.error(
+                'PdfGenerationService',
+                'PDF generation failed in job',
+                error,
+                {
+                    jobId: job.id,
+                    type,
+                },
+            );
             throw error;
         }
     }
 
-    private async renderTemplate(templateName: string, data: any): Promise<string> {
+    private async renderTemplate(
+        templateName: string,
+        data: any,
+    ): Promise<string> {
         // Use a template engine like Handlebars, EJS, or custom
         // For this example, using a simple template system
         const templates = {
@@ -415,14 +427,14 @@ export class PdfGenerationService {
               <tr>
                 <td>Produce Collection (Grade {{collection.grade}})</td>
                 <td>{{collection.weight}} kg</td>
-                <td>${{ collection.rate }}/kg</td>
-                <td>${{ collection.amount }}</td>
+                <td>\${{ collection.rate }}/kg</td>
+                <td>\${{ collection.amount }}</td>
               </tr>
             </tbody>
           </table>
           
           <div class="total">
-            Total Amount: ${{ collection.amount }}
+            Total Amount: \${{ collection.amount }}
           </div>
           
           <div class="qr-code">
@@ -446,10 +458,9 @@ export class PdfGenerationService {
         }
 
         // Simple templating (replace with Handlebars in production)
-        Object.keys(data).forEach(key => {
-            const value = typeof data[key] === 'object'
-                ? JSON.stringify(data[key])
-                : data[key];
+        Object.keys(data).forEach((key) => {
+            const value =
+                typeof data[key] === 'object' ? JSON.stringify(data[key]) : data[key];
             templateHtml = templateHtml.replace(new RegExp(`{{${key}}}`, 'g'), value);
         });
 

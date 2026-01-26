@@ -1,93 +1,95 @@
 export class Money {
-    private readonly amount: number;
-    private readonly currency: string;
+  private readonly amount: number;
+  private readonly currency: string;
 
-    constructor(amount: number | string, currency: string = 'USD') {
-        if (typeof amount === 'string') {
-            amount = parseFloat(amount);
-        }
-
-        if (isNaN(amount)) {
-            throw new Error('Invalid amount');
-        }
-
-        if (!Number.isFinite(amount)) {
-            throw new Error('Amount must be finite');
-        }
-
-        // Store with 4 decimal places precision
-        this.amount = Math.round(amount * 10000) / 10000;
-        this.currency = currency;
+  constructor(amount: number | string, currency: string = 'USD') {
+    if (typeof amount === 'string') {
+      amount = parseFloat(amount);
     }
 
-    static zero(currency: string = 'USD'): Money {
-        return new Money(0, currency);
+    if (isNaN(amount)) {
+      throw new Error('Invalid amount');
     }
 
-    add(other: Money): Money {
-        this.validateSameCurrency(other);
-        return new Money(this.amount + other.amount, this.currency);
+    if (!Number.isFinite(amount)) {
+      throw new Error('Amount must be finite');
     }
 
-    subtract(other: Money): Money {
-        this.validateSameCurrency(other);
-        return new Money(this.amount - other.amount, this.currency);
-    }
+    // Store with 4 decimal places precision
+    this.amount = Math.round(amount * 10000) / 10000;
+    this.currency = currency;
+  }
 
-    multiply(factor: number): Money {
-        if (!Number.isFinite(factor)) {
-            throw new Error('Factor must be finite');
-        }
-        return new Money(this.amount * factor, this.currency);
-    }
+  static zero(currency: string = 'USD'): Money {
+    return new Money(0, currency);
+  }
 
-    divide(divisor: number): Money {
-        if (divisor === 0) {
-            throw new Error('Cannot divide by zero');
-        }
-        return new Money(this.amount / divisor, this.currency);
-    }
+  add(other: Money): Money {
+    this.validateSameCurrency(other);
+    return new Money(this.amount + other.amount, this.currency);
+  }
 
-    percentage(percent: number): Money {
-        return this.multiply(percent / 100);
-    }
+  subtract(other: Money): Money {
+    this.validateSameCurrency(other);
+    return new Money(this.amount - other.amount, this.currency);
+  }
 
-    isGreaterThan(other: Money): boolean {
-        this.validateSameCurrency(other);
-        return this.amount > other.amount;
+  multiply(factor: number): Money {
+    if (!Number.isFinite(factor)) {
+      throw new Error('Factor must be finite');
     }
+    return new Money(this.amount * factor, this.currency);
+  }
 
-    isLessThan(other: Money): boolean {
-        this.validateSameCurrency(other);
-        return this.amount < other.amount;
+  divide(divisor: number): Money {
+    if (divisor === 0) {
+      throw new Error('Cannot divide by zero');
     }
+    return new Money(this.amount / divisor, this.currency);
+  }
 
-    isZero(): boolean {
-        return this.amount === 0;
-    }
+  percentage(percent: number): Money {
+    return this.multiply(percent / 100);
+  }
 
-    getAmount(): number {
-        return this.amount;
-    }
+  isGreaterThan(other: Money): boolean {
+    this.validateSameCurrency(other);
+    return this.amount > other.amount;
+  }
 
-    getCurrency(): string {
-        return this.currency;
-    }
+  isLessThan(other: Money): boolean {
+    this.validateSameCurrency(other);
+    return this.amount < other.amount;
+  }
 
-    toJSON(): { amount: number; currency: string } {
-        return {
-            amount: this.amount,
-            currency: this.currency,
-        };
-    }
+  isZero(): boolean {
+    return this.amount === 0;
+  }
 
-    toString(): string {
-        return `${this.currency} ${this.amount.toFixed(2)}`;
-    }
+  getAmount(): number {
+    return this.amount;
+  }
 
-    private validateSameCurrency(other: Money): void {
-        if (this.currency !== other.currency) {
-            throw new Error(`Currency mismatch: ${this.currency} vs ${other.currency}`);
-        }
+  getCurrency(): string {
+    return this.currency;
+  }
+
+  toJSON(): { amount: number; currency: string } {
+    return {
+      amount: this.amount,
+      currency: this.currency,
+    };
+  }
+
+  toString(): string {
+    return `${this.currency} ${this.amount.toFixed(2)}`;
+  }
+
+  private validateSameCurrency(other: Money): void {
+    if (this.currency !== other.currency) {
+      throw new Error(
+        `Currency mismatch: ${this.currency} vs ${other.currency}`,
+      );
     }
+  }
 }

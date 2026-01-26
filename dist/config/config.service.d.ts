@@ -1,0 +1,35 @@
+export declare class ConfigService {
+    private readonly env;
+    constructor();
+    private validate;
+    get databaseUrl(): string;
+    get databaseReadReplicaUrl(): string | undefined;
+    get redisUrl(): string;
+    get redisPassword(): string | undefined;
+    get isProduction(): boolean;
+    get port(): number;
+    get clusterEnabled(): boolean;
+    get workersCount(): number | 'auto';
+    get jwtSecret(): string;
+    get jwtExpiration(): string;
+    get refreshTokenExpiration(): string;
+    get encryptionKey(): string;
+    get throttleTtl(): number;
+    get throttleLimit(): number;
+    get loanRecoveryCap(): number;
+    get superAdminEmail(): string;
+    get superAdminPassword(): string;
+    get frontendUrls(): string[];
+    get mpesaConsumerKey(): string | undefined;
+    get mpesaConsumerSecret(): string | undefined;
+    get marketRatesApiUrl(): string | undefined;
+    get marketRatesApiKey(): string | undefined;
+    get logLevel(): string;
+    get logFormat(): string;
+    get lokiEnabled(): boolean;
+    get lokiHost(): string | undefined;
+    get performanceThresholdMs(): number;
+    get slowQueryThresholdMs(): number;
+    get pdfWorkerConcurrency(): number;
+    get pdfTimeoutMs(): number;
+}

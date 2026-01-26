@@ -1,60 +1,60 @@
 export class PhoneNumber {
-    private readonly value: string;
-    private readonly countryCode: string;
-    private readonly nationalNumber: string;
+  private readonly value: string;
+  private readonly countryCode: string;
+  private readonly nationalNumber: string;
 
-    constructor(value: string, countryCode: string = '254') {
-        const normalized = this.normalize(value, countryCode);
+  constructor(value: string, countryCode: string = '254') {
+    const normalized = this.normalize(value, countryCode);
 
-        if (!PhoneNumber.isValid(normalized)) {
-            throw new Error(`Invalid phone number: ${value}`);
-        }
-
-        this.value = normalized;
-        this.countryCode = countryCode;
-        this.nationalNumber = normalized.replace(`+${countryCode}`, '');
+    if (!PhoneNumber.isValid(normalized)) {
+      throw new Error(`Invalid phone number: ${value}`);
     }
 
-    private normalize(phoneNumber: string, countryCode: string): string {
-        // Remove all non-digit characters except leading +
-        let normalized = phoneNumber.replace(/[^\d+]/g, '');
+    this.value = normalized;
+    this.countryCode = countryCode;
+    this.nationalNumber = normalized.replace(`+${countryCode}`, '');
+  }
 
-        // Add country code if missing
-        if (!normalized.startsWith('+')) {
-            if (normalized.startsWith('0')) {
-                // Replace leading 0 with country code
-                normalized = `+${countryCode}${normalized.substring(1)}`;
-            } else {
-                normalized = `+${countryCode}${normalized}`;
-            }
-        }
+  private normalize(phoneNumber: string, countryCode: string): string {
+    // Remove all non-digit characters except leading +
+    let normalized = phoneNumber.replace(/[^\d+]/g, '');
 
-        return normalized;
+    // Add country code if missing
+    if (!normalized.startsWith('+')) {
+      if (normalized.startsWith('0')) {
+        // Replace leading 0 with country code
+        normalized = `+${countryCode}${normalized.substring(1)}`;
+      } else {
+        normalized = `+${countryCode}${normalized}`;
+      }
     }
 
-    static isValid(phoneNumber: string): boolean {
-        // E.164 format validation
-        const regex = /^\+[1-9]\d{1,14}$/;
-        return regex.test(phoneNumber);
-    }
+    return normalized;
+  }
 
-    getValue(): string {
-        return this.value;
-    }
+  static isValid(phoneNumber: string): boolean {
+    // E.164 format validation
+    const regex = /^\+[1-9]\d{1,14}$/;
+    return regex.test(phoneNumber);
+  }
 
-    getCountryCode(): string {
-        return this.countryCode;
-    }
+  getValue(): string {
+    return this.value;
+  }
 
-    getNationalNumber(): string {
-        return this.nationalNumber;
-    }
+  getCountryCode(): string {
+    return this.countryCode;
+  }
 
-    equals(other: PhoneNumber): boolean {
-        return this.value === other.value;
-    }
+  getNationalNumber(): string {
+    return this.nationalNumber;
+  }
 
-    toString(): string {
-        return this.value;
-    }
+  equals(other: PhoneNumber): boolean {
+    return this.value === other.value;
+  }
+
+  toString(): string {
+    return this.value;
+  }
 }

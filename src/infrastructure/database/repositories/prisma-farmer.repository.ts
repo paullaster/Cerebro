@@ -7,29 +7,29 @@ import { FarmerMapper } from '../mappers/farmer.mapper.ts';
 
 @Injectable()
 export class PrismaFarmerRepository implements IFarmerRepository, OnModuleInit {
-    constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
 
-    async onModuleInit(): Promise<void> {
-        await this.prisma.$connect();
-    }
+  async onModuleInit(): Promise<void> {
+    await this.prisma.getReadOnlyClient();
+  }
 
-    async save(farmer: Farmer): Promise<Farmer> {
-        const data = FarmerMapper.toPersistence(farmer);
+  async save(farmer: Farmer): Promise<Farmer> {
+    const data = FarmerMapper.toPersistence(farmer);
 
-        const result = await this.prisma.farmer.upsert({
-            where: { user_id: data.user_id },
-            update: data,
-            create: data,
-        });
+    const result = await this.prisma.farmer.upsert({
+      where: { user_id: data.user_id },
+      update: data,
+      create: data,
+    });
 
-        return FarmerMapper.toDomain(result);
-    }
+    return FarmerMapper.toDomain(result);
+  }
 
-    async findById(userId: UUIDv7): Promise<Farmer | null> {
-        const result = await this.prisma.farmer.findUnique({
-            where: { user_id: userId.toString() },
-        });
+  async findById(userId: UUIDv7): Promise<Farmer | null> {
+    const result = await this.prisma.farmer.findUnique({
+      where: { user_id: userId.toString() },
+    });
 
-        return FarmerMapper.toDomain(result);
-    }
+    return FarmerMapper.toDomain(result);
+  }
 }
