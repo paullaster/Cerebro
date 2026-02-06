@@ -1,0 +1,103 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model crop_specialities {
+  id                   String                 @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  crop                 String
+  farm_crop_speciality farm_crop_speciality[]
+}
+
+model farm_crop_speciality {
+  id                String             @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  crop              String?            @db.Uuid
+  farm              String?            @unique @db.Uuid
+  crop_specialities crop_specialities? @relation(fields: [crop], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  farms             farms?             @relation(fields: [farm], references: [farm_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model farms {
+  farm_id              String                @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  farm_name            String
+  farmer               String?               @db.Uuid
+  location_place_id    String?               @db.VarChar(255)
+  location_lat         Float?
+  location_lng         Float?
+  farm_crop_speciality farm_crop_speciality?
+  users                users?                @relation(fields: [farmer], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model payment_methods {
+  id                   String                 @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  method               String
+  created_at           DateTime?              @default(now()) @db.Timestamptz(6)
+  user_payment_methods user_payment_methods[]
+}
+
+model user_payment_methods {
+  id                String           @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  user_id           String?          @db.Uuid
+  payment_method_id String?          @db.Uuid
+  preferred         Boolean?         @default(true)
+  created_at        DateTime?        @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime?        @db.Timestamptz(6)
+  deleted_at        DateTime?        @db.Timestamptz(6)
+  payment_methods   payment_methods? @relation(fields: [payment_method_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users             users?           @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model user_preference {
+  id                      String              @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  user_id                 String?             @db.Uuid
+  preferred_notifications notification_modes? @default(push)
+  users                   users?              @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "cascade")
+}
+
+model users {
+  id                   String                 @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  first_name           String                 @db.VarChar(100)
+  last_name            String                 @db.VarChar(100)
+  national_id          String                 @unique @db.VarChar(100)
+  email                String                 @unique @db.VarChar(100)
+  phone_number         String                 @unique @db.VarChar(100)
+  username             String                 @unique
+  created_at           DateTime               @default(now()) @db.Timestamptz(6)
+  updated_at           DateTime?              @db.Timestamptz(6)
+  deleted_at           DateTime?              @db.Timestamptz(6)
+  verification_status  verification_statuses  @default(PENDING)
+  is_email_verified    Boolean                @default(false)
+  is_phone_verified    Boolean                @default(false)
+  password_hash        String                 @db.VarChar(255)
+  role                 user_role?             @default(FARMER)
+  farms                farms[]
+  user_payment_methods user_payment_methods[]
+  user_preference      user_preference[]
+}
+
+enum notification_modes {
+  push
+  sms
+  email
+  whatsapp
+}
+
+enum user_role {
+  FARMER
+  AGENT_COLLECTION
+  AGENT_STORE
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum verification_statuses {
+  PENDING
+  VERIFIED
+  REJECTED
+  CANCELED
+  ONHOLD
+}
