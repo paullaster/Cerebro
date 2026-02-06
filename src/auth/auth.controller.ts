@@ -13,9 +13,7 @@ import {
 } from '@nestjs/common';
 import { AuthService } from './auth.service.js';
 import { LoginDto } from './dto/login-auth.dto.js';
-import { CreateUserDto } from '../users/dto/create-user.dto.js';
-import { UsernameGeneratorPipe } from '../common/pipes/username-generator.pipe.js';
-import { Response, Request } from 'express';
+import type { Response, Request } from 'express';
 import { ConfigService } from '../config/config.service.js';
 import { AUTH_CONSTANTS, SECURE_COOKIE_ALLOW_LIST } from './auth.constants.js';
 
@@ -28,15 +26,6 @@ export class AuthController {
     private readonly authService: AuthService,
     private readonly configService: ConfigService,
   ) {}
-
-  @Post('register')
-  @UsePipes(
-    new UsernameGeneratorPipe(),
-    new ValidationPipe({ transform: true }),
-  )
-  async register(@Body() createAuthDto: CreateUserDto) {
-    return await this.authService.register(createAuthDto);
-  }
 
   @Post('login')
   @UsePipes(new ValidationPipe({ transform: true }))
@@ -61,8 +50,9 @@ export class AuthController {
     @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
   ) {
-    const oldRefreshToken = request.cookies?.[AUTH_CONSTANTS.REFRESH_TOKEN_COOKIE_NAME];
-    
+    const oldRefreshToken =
+      request.cookies?.[AUTH_CONSTANTS.REFRESH_TOKEN_COOKIE_NAME];
+
     if (!oldRefreshToken) {
       throw new UnauthorizedException('Refresh token missing');
     }
@@ -80,17 +70,19 @@ export class AuthController {
 
   @Get('session')
   async getSession(@Req() request: Request) {
-    const refreshToken = request.cookies?.[AUTH_CONSTANTS.REFRESH_TOKEN_COOKIE_NAME];
-    
+    const refreshToken =
+      request.cookies?.[AUTH_CONSTANTS.REFRESH_TOKEN_COOKIE_NAME];
+
     if (!refreshToken) {
       throw new UnauthorizedException('No active session');
     }
 
     // You can also validate the Access Token here if you have a Guard.
     // For this specific endpoint, we verify if the user is still "logged in".
-    const { accessToken, userId } = await this.authService.refresh(refreshToken);
+    const { accessToken, userId } =
+      await this.authService.refresh(refreshToken);
     const user = await this.authService.validateSession(userId); // Simplified logic
-    
+
     return user;
   }
 
@@ -105,9 +97,15 @@ export class AuthController {
     return { message: 'Logged out' };
   }
 
-  private setRefreshCookie(response: Response, request: Request, token: string) {
+  private setRefreshCookie(
+    response: Response,
+    request: Request,
+    token: string,
+  ) {
     const host = request.get('host') || '';
-    const isSecureDomain = SECURE_COOKIE_ALLOW_LIST.some(domain => host.includes(domain));
+    const isSecureDomain = SECURE_COOKIE_ALLOW_LIST.some((domain) =>
+      host.includes(domain),
+    );
     const isProduction = this.configService.isProduction;
 
     response.cookie(AUTH_CONSTANTS.REFRESH_TOKEN_COOKIE_NAME, token, {
